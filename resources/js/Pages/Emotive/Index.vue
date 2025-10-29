@@ -149,10 +149,20 @@ onMounted(() => {
   initializeChecklist();
 });
 
+// Modal state
+const showSuccessModal = ref(false);
+
 // Handle done button click
 const handleDoneClick = () => {
-  alert('Notification sent successfully!');
-  window.location.href = route('dashboard');
+  showSuccessModal.value = true;
+};
+
+// Close modal and navigate to diagnostic page
+const closeAndNavigate = () => {
+  showSuccessModal.value = false;
+  setTimeout(() => {
+    window.location.href = route('diagonestic.index');
+  }, 300); // Small delay to allow modal to close smoothly
 };
 
 onUnmounted(() => {
@@ -276,12 +286,12 @@ onUnmounted(() => {
         </section>
 
         <!-- Action Button -->
-        <div v-if="allStepsCompleted" class="mb-6 flex justify-center">
+        <div v-if="allStepsCompleted" class="mb-6 flex justify-start">
             <button 
                 class="bg-motivaid-teal text-white font-medium px-4 py-2 rounded-md hover:bg-motivaid-teal-dark focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
                 @click="handleDoneClick"
             >
-                Done
+                Move to Diagonestic
             </button>
         </div>
     </main>
@@ -341,5 +351,27 @@ onUnmounted(() => {
             <span>Share</span>
         </button>
     </nav>
+
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/30" @click="closeAndNavigate"></div>
+        <div class="relative bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto transform transition-all">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto bg-green-100 rounded-full mb-4">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 text-center mb-2">Success!</h3>
+            <p class="text-gray-600 text-center mb-6">Steps completed successfully.</p>
+            <div class="flex justify-center">
+                <button 
+                    @click="closeAndNavigate"
+                    class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
+                >
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 </template>

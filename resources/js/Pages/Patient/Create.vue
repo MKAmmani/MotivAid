@@ -107,13 +107,16 @@ const isFormValid = computed(() => {
     return Object.keys(errors).length === 0;
 });
 
+// Modal state
+const showSuccessModal = ref(false);
+
 const addPatient = () => {
     // Only submit if form is valid
     if (isFormValid.value) {
         form.post(route('patient.store'), {
             onSuccess: ()=>{
                 console.log('successfully');
-                form.reset(); // Reset the form after successful submission
+                showSuccessModal.value = true; // Show success modal instead of alert
                 // Hide any warning badges after successful submission
                 const warningBadge = document.getElementById('warning-badge');
                 if (warningBadge) {
@@ -136,6 +139,12 @@ const addPatient = () => {
         // Display client-side validation errors - in a real app you might want to show them in the UI
         console.log('Form validation failed');
     }
+};
+
+// Close modal and reset form
+const closeAndReset = () => {
+    showSuccessModal.value = false;
+    form.reset(); // Reset the form after closing modal
 };
 
 </script>
@@ -415,5 +424,27 @@ const addPatient = () => {
             <span>Share</span>
         </button>
     </footer> -->
+    
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/30" @click="closeAndReset"></div>
+        <div class="relative bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto transform transition-all">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto bg-green-100 rounded-full mb-4">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 text-center mb-2">Patient Profile Saved!</h3>
+            <p class="text-gray-600 text-center mb-6">Your patient information has been successfully saved.</p>
+            <div class="flex justify-center">
+                <button 
+                    @click="closeAndReset"
+                    class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
+                >
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </template>
