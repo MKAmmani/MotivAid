@@ -32,10 +32,12 @@ class PatientDataController extends Controller
             'type_of_pregenency' => 'required|in:single,twin,triplet,higher',
             'gestational_age' => 'required|string|max:255',
             'hospital' => 'required|string|max:255',
+            
         ]);
+        $validatedData['user_id'] = auth()->id();
 
         $patient = Patient_data::create($validatedData);
 
-        return redirect()->route('emotive.index')->with('success', 'Patient data saved successfully.');
+        return redirect()->route('emotive.index', ['patient' => $patient->id])->with('success', 'Patient data saved successfully.');
     }
 }

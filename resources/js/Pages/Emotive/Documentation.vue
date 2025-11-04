@@ -1,13 +1,23 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
+
+// Define props
+const props = defineProps({
+  patients: {
+    type: Array,
+    required: true,
+  },
+  meta: {
+    type: Object,
+    default: () => ({})
+  }
+});
 
 // Reactive data
 const realtimeClock = ref('');
-const timerText = ref('00:15:43');
-const bloodLossEstimate = ref('600 ml');
 
 // Clock interval reference
 let clockInterval = null;
@@ -26,11 +36,6 @@ const updateClock = () => {
   realtimeClock.value = formatTime(new Date());
 };
 
-// Save functionality
-const handleSave = () => {
-  alert('Saved successfully');
-};
-
 // Initialize clock when component mounts
 onMounted(() => {
   updateClock(); // Initial call to set the time immediately
@@ -43,17 +48,57 @@ onUnmounted(() => {
     clearInterval(clockInterval);
   }
 });
-</script>
 
+// Pagination functions
+const goToPage = (page) => {
+  if (page >= 1 && page <= (props.meta.last_page || 1)) {
+    router.visit(route('documentation.index', { page: page }));
+  }
+};
+
+const goToNextPage = () => {
+  if (props.meta.current_page < props.meta.last_page) {
+    router.visit(route('documentation.index', { page: props.meta.current_page + 1 }));
+  }
+};
+
+const goToPrevPage = () => {
+  if (props.meta.current_page > 1) {
+    router.visit(route('documentation.index', { page: props.meta.current_page - 1 }));
+  }
+};
+
+// Function to get page numbers to display in pagination
+const getPageNumbers = () => {
+  const pages = [];
+  const maxVisiblePages = 5;
+  
+  let startPage = Math.max(1, props.meta.current_page - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(props.meta.last_page, startPage + maxVisiblePages - 1);
+  
+  // Adjust start page if needed to show maxVisiblePages
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+  
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i);
+  }
+  
+  return pages;
+};
+
+
+</script>
 <template>
-       <body class="bg-gray-50 min-h-screen flex flex-col">
+  <div class="min-h-screen flex flex-col bg-gray-50">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-            <svg class="w-6 h-6 text-motivaid-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-            </svg>
-            <a href="patient.php" class="text-xl font-bold text-motivaid-teal">MotivAid</a>+
+        <div class="flex items-center space-x-3">
+            <div class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200">
+                <img src="/images/motivaid_logo.jpg" alt="MotivAid Logo" class="w-8 h-8 object-contain rounded-full">
+            </div>
+            <span class="text-xl font-bold text-motivaid-teal">MotivAid</span>
         </div>
 
         <div class="flex items-center space-x-4">
@@ -88,139 +133,125 @@ onUnmounted(() => {
     <main class="flex-1 overflow-y-auto px-4 py-6">
         <!-- Title Section -->
         <section class="bg-motivaid-teal text-white px-6 py-8 rounded-lg mb-6">
-            <h2 class="text-2xl font-semibold mb-2">Documentation &</h2>
-            <p class="text-motivaid-teal/90 font-medium">Case Summary</p>
+            <h2 class="text-2xl font-semibold mb-2">Documentation</h2>
+            <p class="text-motivaid-teal/90 font-medium">Patients Treated by You</p>
         </section>
 
-        <!-- Timer and Estimate Card -->
-        <section class="bg-white rounded-lg shadow-sm p-4 mb-4">
-            <h3 class="text-sm font-medium text-gray-700 mb-2">Live Timer | Blood Loss Estimate</h3>
-            <div class="flex justify-between items-center text-lg font-semibold">
-                <span class="text-gray-800">{{ timerText }}</span>
-                <span class="text-motivaid-teal">{{ bloodLossEstimate }}</span>
-            </div>
-        </section>
-
-        <!-- Alert Banner -->
-        <section class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div class="flex items-start">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-red-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                    </svg>
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm font-medium text-red-800">Possible Postpartum Hemorrhage – Begin E-MOTIVE steps now!</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Case Summary Table -->
+        <!-- Patient List -->
         <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h3 class="text-lg font-medium text-gray-700 mb-4">Case Summary</h3>
-            <div class="overflow-x-auto">
+            <h3 class="text-lg font-medium text-gray-700 mb-4">Your Patients</h3>
+            
+            <div v-if="patients.length > 0" class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hospital</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Massaging of the utery</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10:36 AM</td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Oxytocin administered</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10:37 AM</td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Tranexamic Acid</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10:40 AM</td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">IV fluids started</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10:41 AM</td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Vital signs monitored</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10:43 AM</td>
-                        </tr>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Examination</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10:44 AM</td>
+                        <tr v-for="patient in patients" :key="patient.id">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ patient.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ patient.age }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ patient.hospital }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ new Date(patient.created_at).toLocaleDateString() }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <Link 
+                                    :href="route('emotive.steps.patient', { patientId: patient.id })"
+                                    class="text-motivaid-teal hover:text-teal-700 font-medium"
+                                >
+                                    View Summary
+                                </Link>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
+                
+                <!-- Pagination Controls -->
+                <div class="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 mt-4">
+                    <div class="flex flex-1 justify-between sm:hidden">
+                        <button
+                            @click="goToPrevPage"
+                            :disabled="meta.current_page === 1"
+                            class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            @click="goToNextPage"
+                            :disabled="meta.current_page === meta.last_page"
+                            class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
+                    </div>
+                    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Showing
+                                <span class="font-medium">{{ meta.from || 0 }}</span>
+                                to
+                                <span class="font-medium">{{ meta.to || 0 }}</span>
+                                of
+                                <span class="font-medium">{{ meta.total || 0 }}</span>
+                                results
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                <button
+                                    @click="goToPrevPage"
+                                    :disabled="meta.current_page === 1"
+                                    class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <span class="sr-only">Previous</span>
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-5-4.75a.75.75 0 010-1.08l5-4.75a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                                
+                                <!-- Page numbers -->
+                                <button
+                                    v-for="page in getPageNumbers()"
+                                    :key="page"
+                                    @click="goToPage(page)"
+                                    :class="[
+                                        meta.current_page === page
+                                            ? 'z-10 bg-motivaid-teal text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600'
+                                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50',
+                                        'relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
+                                    ]"
+                                >
+                                    {{ page }}
+                                </button>
+                                
+                                <button
+                                    @click="goToNextPage"
+                                    :disabled="meta.current_page === meta.last_page"
+                                    class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <span class="sr-only">Next</span>
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l5 4.75a.75.75 0 010 1.08l-5 4.75a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div v-else class="text-center py-8">
+                <p class="text-gray-500">No patients found. You haven't treated any patients yet.</p>
             </div>
         </section>
-
-        <!-- Action Button -->
-        <div class="mb-6">
-            <button 
-                class="w-full bg-motivaid-teal text-white px-6 py-3 rounded-md font-medium hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-2"
-                @click="handleSave"
-            >
-                Save
-            </button>
-        </div>
     </main>
 
-    <!-- Bottom Navigation -->
-    <nav class="bg-white border-t border-gray-200 px-4 py-2 flex justify-around items-center fixed bottom-0 left-0 right-0 md:hidden">
-        <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-            <span class="text-xs">Edit</span>
-        </button>
-        <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
-            </svg>
-            <span class="text-xs">Select</span>
-        </button>
-        <button class="flex flex-col items-center space-y-1 text-motivaid-teal">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            <span class="text-xs">Save</span>
-        </button>
-        <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-            </svg>
-            <span class="text-xs">Share</span>
-        </button>
-    </nav>
-
-    <!-- Desktop Navigation (Hidden on Mobile) -->
-    <nav class="hidden md:flex justify-center space-x-8 py-4 bg-white border-t border-gray-200">
-        <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-            <span>Edit</span>
-        </button>
-        <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
-            </svg>
-            <span>Select</span>
-        </button>
-        <button class="flex items-center space-x-2 text-motivaid-teal">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            <span>Save</span>
-        </button>
-        <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-            </svg>
-            <span>Share</span>
-        </button>
-    </nav>
-</body>
+    <div class="mt-8 text-center text-gray-400 text-sm">
+        &copy; 2025 MotivAid. All rights reserved.
+    </div>
+  </div>
 </template>

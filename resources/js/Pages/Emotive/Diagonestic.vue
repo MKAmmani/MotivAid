@@ -166,9 +166,12 @@ const handleDoneClick = () => {
   showCompletionPopup.value = true;
 };
 
-// Close completion popup
-const closeCompletionPopup = () => {
+// Close completion popup and navigate to treatment page
+const closeAndNavigate = () => {
   showCompletionPopup.value = false;
+  setTimeout(() => {
+    window.location.href = route('treatment.index');
+  }, 300); // Small delay to allow modal to close smoothly
 };
 
 onMounted(() => {
@@ -190,9 +193,9 @@ onUnmounted(() => {
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center space-x-3">
-            <svg class="w-8 h-8 text-motivaid-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-            </svg>
+            <div class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200">
+                <img src="/images/motivaid_logo.jpg" alt="MotivAid Logo" class="w-10 h-10 object-contain rounded-full">
+            </div>
             <h1 class="text-2xl font-bold text-motivaid-teal">MotivAid</h1>
         </div>
 
@@ -329,73 +332,29 @@ onUnmounted(() => {
         </section>
     </main>
 
-    <!-- Bottom Navigation (Mobile) -->
-    <nav class="bg-white border-t border-gray-200 px-6 py-3 flex justify-around items-center fixed bottom-0 left-0 right-0 md:hidden">
-        <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-            <span class="text-xs font-medium">Edit</span>
-        </button>
-        <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
-            </svg>
-            <span class="text-xs font-medium">Select</span>
-        </button>
-        <button class="flex flex-col items-center space-y-1 text-motivaid-teal">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            <span class="text-xs font-medium">Save</span>
-        </button>
-        <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-            </svg>
-            <span class="text-xs font-medium">Share</span>
-        </button>
-    </nav>
-
-    <!-- Desktop Navigation -->
-    <nav class="hidden md:flex justify-center space-x-12 py-4 bg-white border-t border-gray-200">
-        <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-            <span class="font-medium">Edit</span>
-        </button>
-        <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
-            </svg>
-            <span class="font-medium">Select</span>
-        </button>
-        <button class="flex items-center space-x-2 text-motivaid-teal">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            <span class="font-medium">Save</span>
-        </button>
-        <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-            </svg>
-            <span class="font-medium">Share</span>
-        </button>
-    </nav>
-
     <!-- Completion Popup -->
-    <div v-if="showCompletionPopup" class="fixed inset-0 z-50 flex items-center justify-center" role="status" aria-live="polite">
-        <div class="bg-white border-l-4 border-green-600 p-6 rounded-lg shadow-md max-w-md w-full transform transition duration-200">
-            <div class="flex items-center justify-between">
-                <p class="text-base font-medium text-gray-800">Your action has been completed successfully</p>
-                <button @click="closeCompletionPopup" class="text-green-600 text-lg focus:outline-none" aria-label="Close">&times;</button>
+    <div v-if="showCompletionPopup" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/30" @click="closeAndNavigate"></div>
+        <div class="relative bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto transform transition-all">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto bg-green-100 rounded-full mb-4">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
             </div>
-            <button class="mt-4 bg-[#0D9488] hover:bg-[#0C7A70] text-white font-medium text-sm py-2 px-4 rounded w-full transition duration-200">
-                Add New Patient
-            </button>
+            <h3 class="text-lg font-medium text-gray-900 text-center mb-2">Success!</h3>
+            <p class="text-gray-600 text-center mb-6">Diagnostic steps completed successfully.</p>
+            <div class="flex justify-center">
+                <button 
+                    @click="closeAndNavigate"
+                    class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
+                >
+                    Continue to Treatment
+                </button>
+            </div>
         </div>
+    </div>
+    <div class="mt-8 text-center text-gray-400 text-sm">
+        &copy; 2025 MotivAid. All rights reserved.
     </div>
   </body>
 </template>

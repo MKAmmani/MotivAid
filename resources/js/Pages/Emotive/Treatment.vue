@@ -2,7 +2,11 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage, router } from '@inertiajs/vue3';
+import axios from 'axios';
+
+// Get page object to access props
+const page = usePage();
 
 // Reactive data
 const timerText = ref('15:00');
@@ -10,6 +14,9 @@ const showAlertPopup = ref(false);
 const showSuccessPopup = ref(false);
 const showEscalateSection = ref(false);
 const showStillBleedingSection = ref(false);
+
+// Get patient ID from page props if available
+const patientId = page.props.patient ? page.props.patient.id : null;
 
 // Timer state
 let timerInterval = null;
@@ -89,6 +96,20 @@ const handlePphNo = () => {
   showSuccessPopup.value = true;
 };
 
+// Close success popup
+const closeSuccessPopup = () => {
+  showSuccessPopup.value = false;
+  setTimeout(() => {
+    // Redirect to the summary page for the current patient if we have the ID, otherwise to patient index
+    if (patientId) {
+      router.visit(route('emotive.steps.patient', { patientId: patientId }));
+    } else {
+      // Fallback to patient index if no patient ID is available
+      router.visit(route('documentation.index'));
+    }
+  }, 300); // Small delay to allow modal to close smoothly
+};
+
 // Show alert popup with countdown
 const showPphAlertPopup = () => {
   alertCountdown.value = 60;
@@ -127,7 +148,25 @@ const hideAlertPopup = () => {
 
 // Handle alert doctor click
 const handleAlertDoctor = () => {
-  alert('Doctor alerted.');
+  // Call the API to send the SMS alert using axios
+  axios.get(route('send.sms'))
+    .then(response => {
+      if (response.data.success) {
+        console.log('SMS alert sent successfully:', response.data.message);
+      } else {
+        console.error('Failed to send SMS alert:', response.data.message);
+        alert('Failed to send alert: ' + response.data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error sending SMS alert:', error);
+      if (error.response && error.response.data && error.response.data.message) {
+        alert('An error occurred while sending the alert: ' + error.response.data.message);
+      } else {
+        alert('An error occurred while sending the alert.');
+      }
+    });
+  
   hideAlertPopup();
 };
 
@@ -162,6 +201,21 @@ onUnmounted(() => {
     clearTimeout(alertTimeout);
   }
 });
+
+// Close modal and navigate to summary page or patient index
+const closeAndNavigate = () => {
+  showSuccessPopup.value = false;
+  setTimeout(() => {
+    // Redirect to the summary page for the current patient if we have the ID, otherwise to patient index
+    if (patientId) {
+      router.visit(route('emotive.steps.patient', { patientId: patientId }));
+    } else {
+      // Fallback to patient index if no patient ID is available
+      router.visit(route('documentation.index'));
+    }
+  }, 300); // Small delay to allow modal to close smoothly
+};
+
 </script>
 
 <template>
@@ -169,9 +223,9 @@ onUnmounted(() => {
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center space-x-3">
-            <svg class="w-8 h-8 text-motivaid-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-            </svg>
+            <div class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200">
+                <img src="/images/motivaid_logo.jpg" alt="MotivAid Logo" class="w-10 h-10 object-contain rounded-full">
+            </div>
             <h1 class="text-2xl font-bold text-motivaid-teal">MotivAid</h1>
         </div>
 
@@ -270,36 +324,45 @@ onUnmounted(() => {
 
         <!-- Success Popup -->
         <div v-if="showSuccessPopup" class="fixed inset-0 z-50 flex items-center justify-center">
-            <div class="absolute inset-0 bg-black/40"></div>
-            <div class="relative bg-white rounded-xl p-6 w-11/12 max-w-sm mx-auto shadow-lg text-center">
-              <div class="flex items-center justify-center mb-4">
-                  <span class="text-3xl text-motivaid-teal">🎉</span>
-                  <h4 class="text-xl font-semibold text-motivaid-teal ml-2">Good Job! You just saved a life...</h4>
-              </div>
-              <p class="text-gray-600 mt-2">Can you do it again?</p>
-              <a href="page6.php" class="inline-block bg-motivaid-teal text-white px-6 py-3 rounded-lg font-medium hover:bg-teal-700 transition">
-                  Manage Another Patient
-              </a>
+            <div class="absolute inset-0 bg-black/30" @click="closeSuccessPopup"></div>
+            <div class="relative bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto transform transition-all">
+                <div class="flex items-center justify-center w-16 h-16 mx-auto bg-green-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 text-center mb-2">Success!</h3>
+                <p class="text-gray-600 text-center mb-6">PPH treatment completed successfully. You just saved a life!</p>
+                <div class="flex justify-center">
+                    <button 
+                        @click="closeSuccessPopup"
+                        class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
+                    >
+                        Check the Documentation
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Centered Alert Popup (hidden by default) -->
         <div v-if="showAlertPopup" class="fixed inset-0 z-50 flex items-center justify-center">
-            <div class="absolute inset-0 bg-black/40"></div>
-            <div class="relative bg-white rounded-xl p-6 w-11/12 max-w-sm mx-auto shadow-lg text-center">
-              <div class="flex items-center justify-center space-x-3 mb-3">
-                  <span class="text-3xl">🚨</span>
-                  <h4 class="text-lg font-semibold text-motivaid-dark">Alert the doctor</h4>
-              </div>
-              <p class="text-sm text-gray-600 mb-4">A clinician should be notified immediately. <span class="font-medium">({{ alertCountdown }}s)</span></p>
-              <div class="flex justify-center space-x-3">
-                  <button @click="handleAlertDoctor" class="bg-motivaid-teal text-white px-4 py-2 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
-                    🚨 Alert Doctor
-                  </button>
-                  <button @click="handleDismiss" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 focus:outline-none transition">
-                    Dismiss
-                  </button>
-              </div>
+            <div class="absolute inset-0 bg-black/30" @click="handleDismiss"></div>
+            <div class="relative bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto transform transition-all">
+                <div class="flex items-center justify-center w-16 h-16 mx-auto bg-red-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 text-center mb-2">Alert the Doctor</h3>
+                <p class="text-gray-600 text-center mb-6">A clinician should be notified immediately. <span class="font-medium">({{ alertCountdown }}s)</span></p>
+                <div class="flex justify-center space-x-3">
+                    <button @click="handleAlertDoctor" class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal">
+                        Alert Doctor
+                    </button>
+                    <button @click="handleDismiss" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none">
+                        Dismiss
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -391,16 +454,16 @@ onUnmounted(() => {
             <!-- Record & Save Button -->
             <section class="mt-8">
                 <div class="flex justify-center">
-                    <a href="#" class="bg-pph-pink text-motivaid-teal px-6 py-4 rounded-lg font-medium border-2 border-motivaid-teal hover:bg-motivaid-teal hover:text-white focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                    <button  class="bg-pph-pink text-motivaid-teal px-6 py-4 rounded-lg font-medium border-2 border-motivaid-teal hover:bg-motivaid-teal hover:text-white focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
                         Add Another Patient
-                    </a>
+                    </button>
                 </div>
             </section>
         </section>
         
     </main>
 
-    <!-- Bottom Navigation (Mobile) -->
+    <!-- Bottom Navigation (Mobile) 
     <nav class="bg-white border-t border-gray-200 px-6 py-3 flex justify-around items-center fixed bottom-0 left-0 right-0 md:hidden">
         <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal transition">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,7 +491,7 @@ onUnmounted(() => {
         </button>
     </nav>
 
-    <!-- Desktop Navigation -->
+     Desktop Navigation 
     <nav class="hidden md:flex justify-center space-x-12 py-4 bg-white border-t border-gray-200">
         <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,6 +517,9 @@ onUnmounted(() => {
             </svg>
             <span class="font-medium">Share</span>
         </button>
-    </nav>
+    </nav>-->
+    <div class="mt-8 text-center text-gray-400 text-sm">
+        &copy; 2025 MotivAid. All rights reserved.
+    </div>
 </body>
 </template>

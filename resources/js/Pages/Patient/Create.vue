@@ -156,10 +156,10 @@ const closeAndReset = () => {
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-            <svg class="w-6 h-6 text-motivaid-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-            </svg>
+        <div class="flex items-center space-x-3">
+            <div class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200">
+                <img src="/images/motivaid_logo.jpg" alt="MotivAid Logo" class="w-10 h-10 object-contain rounded-full">
+            </div>
            <span class="text-xl font-bold text-motivaid-teal">MotivAid</span>
         </div>
 
@@ -369,8 +369,12 @@ const closeAndReset = () => {
         </section>
     </main>
 
-    <!-- Bottom Navigation 
-    <footer class="bg-white border-t border-gray-200 px-4 py-2 flex justify-around items-center fixed bottom-0 left-0 right-0 md:hidden">
+    <!-- Bottom Navigation -->
+
+    <div class="mt-8 text-center text-gray-400 text-sm">
+        &copy; 2025 MotivAid. All rights reserved.
+    </div>
+    <!--<footer class="bg-white border-t border-gray-200 px-4 py-2 flex justify-around items-center fixed bottom-0 left-0 right-0 md:hidden">
         <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>

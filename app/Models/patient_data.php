@@ -21,10 +21,27 @@ class Patient_data extends Model
         'type_of_pregenency',
         'gestational_age',
         'hospital',
+        'user_id',
         'is_complete',
     ];
 
     protected $casts = [
         'is_complete' => 'boolean',
     ];
+
+    /**
+     * Get the user that treated this patient.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the emotive steps for this patient.
+     */
+    public function emotiveSteps()
+    {
+        return $this->hasMany(EmotiveStep::class, 'patient_data_id');
+    }
 }

@@ -2,13 +2,18 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 
 // Define props
 const props = defineProps({
   emotiveSteps: {
     type: Array,
     required: true
+  },
+  patientId: {
+    type: [Number, String],
+    required: false,
+    default: null
   }
 });
 
@@ -87,11 +92,39 @@ const stopLiveTimer = () => {
   }
 };
 
+// Record step completion
+const recordStepCompletion = (stepIndex) => {
+  // Only record if we have a patient ID
+  if (!props.patientId) return;
+  
+  const step = allItems.value[stepIndex];
+  
+  router.post(route('emotive.steps.store'), {
+    patient_id: props.patientId,
+    action: step.title,
+    completed_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    onSuccess: () => {
+      console.log(`Step "${step.title}" recorded successfully`);
+    },
+    onError: (errors) => {
+      console.error('Error recording step:', errors);
+    }
+  });
+};
+
 // Next button handler for checklist
 const handleNextClick = () => {
   if (!nextBtnEnabled.value) return;
 
   if (currentIndex.value < allItems.value.length - 1) {
+    // Record the completion of the current step
+    if (allItems.value[currentIndex.value].checked) {
+      recordStepCompletion(currentIndex.value);
+    }
+    
     currentIndex.value++;
     allItems.value[currentIndex.value].visible = true;
     
@@ -103,6 +136,10 @@ const handleNextClick = () => {
     }
   } else {
     // Last step and checkbox was checked -> finalize
+    if (allItems.value[currentIndex.value].checked) {
+      recordStepCompletion(currentIndex.value);
+    }
+    
     nextBtnEnabled.value = false;
     nextBtnText.value = 'Completed';
   }
@@ -179,10 +216,10 @@ onUnmounted(() => {
        <div class="bg-gray-50 min-h-screen flex flex-col">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-            <svg class="w-6 h-6 text-motivaid-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-            </svg>
+        <div class="flex items-center space-x-3">
+            <div class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200">
+                <img src="/images/motivaid_logo.jpg" alt="MotivAid Logo" class="w-8 h-8 object-contain rounded-full">
+            </div>
             <a href="patient.php" class="text-xl font-bold text-motivaid-teal">MotivAid</a>
         </div>
 
@@ -296,7 +333,7 @@ onUnmounted(() => {
         </div>
     </main>
 
-    <!-- Bottom Navigation -->
+    <!-- Bottom Navigation 
     <nav class="bg-white border-t border-gray-200 px-4 py-2 flex justify-around items-center fixed bottom-0 left-0 right-0 md:hidden">
         <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,7 +361,7 @@ onUnmounted(() => {
         </button>
     </nav>
 
-    <!-- Desktop Navigation (Hidden on Mobile) -->
+    <!-- Desktop Navigation (Hidden on Mobile) 
     <nav class="hidden md:flex justify-center space-x-8 py-4 bg-white border-t border-gray-200">
         <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -350,7 +387,7 @@ onUnmounted(() => {
             </svg>
             <span>Share</span>
         </button>
-    </nav>
+    </nav> -->
 
     <!-- Success Modal -->
     <div v-if="showSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center">
@@ -372,6 +409,9 @@ onUnmounted(() => {
                 </button>
             </div>
         </div>
+    </div>
+    <div class="mt-8 text-center text-gray-400 text-sm">
+        &copy; 2025 MotivAid. All rights reserved.
     </div>
 </div>
 </template>
