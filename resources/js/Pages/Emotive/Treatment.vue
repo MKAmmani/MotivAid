@@ -4,9 +4,21 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { useSpeechSynthesis } from '@/Composables/speech.js';
 
 // Get page object to access props
 const page = usePage();
+
+// Initialize speech synthesis
+const {
+  isSupported,
+  isSpeaking,
+  speak,
+  cancel
+} = useSpeechSynthesis();
+
+// TTS repetition interval
+let ttsInterval = null;
 
 // Reactive data
 const timerText = ref('15:00');
@@ -25,13 +37,15 @@ let alertInterval = null;
 let alertTimeout = null;
 const alertCountdown = ref(60);
 
-// Stepper state
-const steps = ref([
+// Stepper state - define default steps to ensure they reset properly
+const defaultSteps = [
   { label: 'Massage Uterus', icon: '✋', completed: false },
   { label: 'Give Oxytocin', icon: '💉', completed: false },
   { label: 'Administer TXA', icon: '💊', completed: false },
   { label: 'Start IV Fluids', icon: '💉', completed: false }
-]);
+];
+
+const steps = ref([...defaultSteps]); // Create a copy to ensure clean initialization
 const currentStepIndex = ref(-1); // -1 means no steps completed initially
 
 // Format time in MM:SS format
@@ -75,12 +89,34 @@ const handleStepClick = (index) => {
       steps.value[i].completed = false;
     }
     currentStepIndex.value = index - 1;
+
+    // Clear current TTS when going backward
+    if (ttsInterval) {
+      clearInterval(ttsInterval);
+      ttsInterval = null;
+    }
+    // Cancel any ongoing speech
+    if (isSpeaking.value) {
+      cancel();
+    }
   } else {
     // Mark this step done
     steps.value[index].completed = true;
     currentStepIndex.value = index;
+    
+    // Speak the step when marked as done
+    if (isSupported.value) {
+      speakText(`Completed ${steps.value[index].label}`);
+    }
+    
+    // Check if this was the last step and ask if still bleeding
+    if (index === steps.value.length - 1 && isSupported.value) {
+      setTimeout(() => {
+        speakText("Is she still bleeding?");
+      }, 2000); // Wait 2 seconds after the step completion speech
+    }
   }
-  
+
   updateStillBleedingVisibility();
 };
 
@@ -88,12 +124,20 @@ const handleStepClick = (index) => {
 const handlePphYes = () => {
   showEscalateSection.value = true;
   showPphAlertPopup();
+  
+  if (isSupported.value) {
+    speakText("Alert the Doctor");
+  }
 };
 
 // Handle PPH No click
 const handlePphNo = () => {
   hideAlertPopup();
   showSuccessPopup.value = true;
+  
+  if (isSupported.value) {
+    speakText("PPH treatment completed successfully. You just saved a life!");
+  }
 };
 
 // Close success popup
@@ -114,11 +158,15 @@ const closeSuccessPopup = () => {
 const showPphAlertPopup = () => {
   alertCountdown.value = 60;
   showAlertPopup.value = true;
-  
+
+  if (isSupported.value) {
+    speakText("Alert the Doctor. A clinician should be notified immediately.");
+  }
+
   // Clear any existing intervals/timers
   if (alertInterval) clearInterval(alertInterval);
   if (alertTimeout) clearTimeout(alertTimeout);
-  
+
   // Set up countdown interval
   alertInterval = setInterval(() => {
     alertCountdown.value--;
@@ -126,7 +174,7 @@ const showPphAlertPopup = () => {
       hideAlertPopup();
     }
   }, 1000);
-  
+
   // Also set a timeout to ensure it closes after 60 seconds
   alertTimeout = setTimeout(() => {
     hideAlertPopup();
@@ -149,30 +197,51 @@ const hideAlertPopup = () => {
 // Handle alert doctor click
 const handleAlertDoctor = () => {
   // Call the API to send the SMS alert using axios
-  axios.get(route('send.sms'))
+  axios.post(route('make.call'), {
+    //to: '+2347082262502', // Default recipient number
+    //message: 'Emergency: Postpartum hemorrhage case requires immediate attention. Patient needs urgent care.'
+  })
     .then(response => {
       if (response.data.success) {
         console.log('SMS alert sent successfully:', response.data.message);
+        // Optionally show a success notification to the user
+        if (isSupported.value) {
+          speakText("Alert sent successfully!");
+        }
+        alert('Alert sent successfully!');
       } else {
         console.error('Failed to send SMS alert:', response.data.message);
+        if (isSupported.value) {
+          speakText("Failed to send alert: " + response.data.message);
+        }
         alert('Failed to send alert: ' + response.data.message);
       }
     })
     .catch(error => {
       console.error('Error sending SMS alert:', error);
       if (error.response && error.response.data && error.response.data.message) {
+        if (isSupported.value) {
+          speakText("An error occurred while sending the alert: " + error.response.data.message);
+        }
         alert('An error occurred while sending the alert: ' + error.response.data.message);
       } else {
+        if (isSupported.value) {
+          speakText("An error occurred while sending the alert.");
+        }
         alert('An error occurred while sending the alert.');
       }
     });
-  
+
   hideAlertPopup();
 };
 
 // Handle dismiss button
 const handleDismiss = () => {
   hideAlertPopup();
+  
+  if (isSupported.value) {
+    speakText("Alert popup dismissed");
+  }
 };
 
 // Progress text computed property
@@ -180,13 +249,59 @@ const progressText = computed(() => {
   const completedCount = steps.value.filter(step => step.completed).length;
   const totalSteps = steps.value.length;
   const nextStep = Math.min(completedCount + 1, totalSteps);
-  
-  return `Step ${nextStep} of ${totalSteps}${completedCount > 0 ? ` — ${completedCount} completed` : ''}`;
+
+  return `Step ${nextStep} of ${totalSteps}${completedCount > 0 ? ' — ${completedCount} completed' : ''}`;
 });
 
 // Initialize on component mount
 onMounted(() => {
+  // Ensure clean state on mount
+  currentStepIndex.value = -1;
+  // Reset steps to default state
+  steps.value = [...defaultSteps];
+  
   startTimer();
+
+  // Start TTS for the first step on every page load, similar to how the timer restarts
+  if (isSupported.value && steps.value.length > 0) {
+    // Clear any existing interval first
+    if (ttsInterval) {
+      clearInterval(ttsInterval);
+      ttsInterval = null;
+    }
+
+    // Always start with the first step when page loads/refreshes, like the timer
+    const firstStepLabel = steps.value[0].label;
+
+    if (isSupported.value) {
+      // Cancel any ongoing speech first
+      if (isSpeaking.value) {
+        cancel();
+      }
+      
+      // Start speaking immediately
+      speak(firstStepLabel);
+
+      // Set up interval to repeat the current step until it's completed
+      ttsInterval = setInterval(() => {
+        // Determine which step should be announced based on current progress
+        let targetStepIndex = currentStepIndex.value + 1;
+        
+        if (targetStepIndex < steps.value.length && isSupported.value) {
+          // Cancel any ongoing speech first
+          if (isSpeaking.value) {
+            cancel();
+          }
+          // Speak the step that should be completed next
+          speak(steps.value[targetStepIndex].label);
+        } else {
+          // If we've completed all steps, clear the interval
+          clearInterval(ttsInterval);
+          ttsInterval = null;
+        }
+      }, 5000); // Repeat every 5 seconds
+    }
+  }
 });
 
 // Clean up on component unmount
@@ -200,7 +315,27 @@ onUnmounted(() => {
   if (alertTimeout) {
     clearTimeout(alertTimeout);
   }
+  // Clear TTS interval to prevent memory leaks
+  if (ttsInterval) {
+    clearInterval(ttsInterval);
+    ttsInterval = null;
+  }
+  // Cancel any ongoing speech
+  if (isSpeaking.value) {
+    cancel();
+  }
 });
+
+// Function to speak text when UI elements appear or are interacted with
+const speakText = (text) => {
+  if (isSupported.value) {
+    // Cancel any ongoing speech first
+    if (isSpeaking.value) {
+      cancel();
+    }
+    speak(text);
+  }
+};
 
 // Close modal and navigate to summary page or patient index
 const closeAndNavigate = () => {
@@ -253,7 +388,7 @@ const closeAndNavigate = () => {
                 </Dropdown>
             </div>
 
-            <div class="text-sm font-medium text-gray-600">Last Updated: 06:17 PM, Oct 24, 2025</div>
+            <div class="text-sm font-medium text-gray-600"></div>
         </div>
     </header>
 
@@ -268,10 +403,10 @@ const closeAndNavigate = () => {
         <!-- Bundle Start -->
         <section class="bg-white rounded-xl shadow-sm p-6 mb-8">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-motivaid-dark">Initiate PPH Bundle</h3>
+                <h3 class="text-lg font-semibold text-motivaid-dark">Initiate Motive Bundle</h3>
                 <span class="text-sm text-gray-500">This will only take 15 minutes</span>
             </div>
-                    
+
             <div class="flex justify-center">
                 <div class="bg-pph-pink text-motivaid-teal px-6 py-3 rounded-lg font-mono text-2xl font-bold">{{ timerText }}</div>
             </div>
@@ -285,25 +420,25 @@ const closeAndNavigate = () => {
               <div v-for="(step, index) in steps" :key="index">
                 <!-- Show the step if it's completed or it's the next step to complete -->
                 <div v-if="index <= currentStepIndex + 1">
-                  <button 
+                  <button
                     @click="handleStepClick(index)"
                     type="button"
                     class="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
-                    :class="step.completed 
-                      ? 'bg-green-100 text-green-800 border border-green-200' 
-                      : 'bg-pph-pink text-motivaid-teal border border-motivaid-teal/20 hover:bg-motivaid-teal hover:text-white'"
+                    :class="step.completed
+                      ? 'bg-green-100 text-green-800 border border-green-200'
+                      : 'bg-pph-pink text-motivaid-teal border border-motivaid-teal/20 hover:bg-hotpink-800 hover:text-white'"
                   >
-                    <div class="flex items-center space-x-3">
-                      <span class="text-lg">{{ step.icon }}</span>
-                      <span>{{ index + 1 }}. {{ step.label }}</span>
-                    </div>
-                    <div class="ml-4 flex items-center space-x-2">
+                    <div class="flex items-center justify-between flex-1">
+                      <div class="flex items-center space-x-3">
+                        <span class="text-lg">{{ step.icon }}</span>
+                        <span>{{ index + 1 }}. {{ step.label }}</span>
+                      </div>
                       <span class="text-sm font-medium">{{ step.completed ? '✓ Done' : 'Mark Done' }}</span>
                     </div>
                   </button>
                 </div>
               </div>
-              
+
               <!-- Progress text -->
               <div class="text-sm text-gray-500">{{ progressText }}</div>
             </div>
@@ -313,10 +448,10 @@ const closeAndNavigate = () => {
         <section v-if="showStillBleedingSection" class="bg-pph-pink rounded-xl p-6 mb-8">
             <h3 class="text-lg font-semibold text-motivaid-teal mb-4 text-center">Still Bleeding?</h3>
             <div class="grid grid-cols-2 gap-4">
-              <button @click="handlePphYes" class="bg-white text-motivaid-teal px-4 py-3 rounded-lg font-medium border-2 border-motivaid-teal hover:bg-motivaid-teal hover:text-white focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+              <button @click="handlePphYes" class="bg-white text-motivaid-teal px-4 py-3 rounded-lg font-medium border-2 border-motivaid-teal hover:bg-hotpink-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
                 Yes
               </button>
-              <button @click="handlePphNo" class="bg-white text-motivaid-teal px-4 py-3 rounded-lg font-medium border-2 border-motivaid-teal hover:bg-motivaid-teal hover:text-white focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+              <button @click="handlePphNo" class="bg-white text-motivaid-teal px-4 py-3 rounded-lg font-medium border-2 border-motivaid-teal hover:bg-hotpink-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
                 No
               </button>
             </div>
@@ -334,9 +469,9 @@ const closeAndNavigate = () => {
                 <h3 class="text-lg font-medium text-gray-900 text-center mb-2">Success!</h3>
                 <p class="text-gray-600 text-center mb-6">PPH treatment completed successfully. You just saved a life!</p>
                 <div class="flex justify-center">
-                    <button 
+                    <button
                         @click="closeSuccessPopup"
-                        class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
+                        class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-2 rounded-md hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink"
                     >
                         Check the Documentation
                     </button>
@@ -356,7 +491,7 @@ const closeAndNavigate = () => {
                 <h3 class="text-lg font-medium text-gray-900 text-center mb-2">Alert the Doctor</h3>
                 <p class="text-gray-600 text-center mb-6">A clinician should be notified immediately. <span class="font-medium">({{ alertCountdown }}s)</span></p>
                 <div class="flex justify-center space-x-3">
-                    <button @click="handleAlertDoctor" class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal">
+                    <button @click="handleAlertDoctor" class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-2 rounded-md hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink">
                         Alert Doctor
                     </button>
                     <button @click="handleDismiss" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none">
@@ -374,18 +509,18 @@ const closeAndNavigate = () => {
               <span>This section is for <span class="font-semibold text-motivaid-teal">doctors only</span>. Please escalate care if required.</span>
               <span class="ml-auto text-xs text-gray-500">Restricted</span>
             </p>
-            
+
             <!-- Additional Uterotonic -->
             <div class="mb-6">
               <h4 class="text-md font-medium text-gray-700 mb-3">Additional Uterotonic</h4>
               <div class="grid grid-cols-2 gap-4">
-                <button class="bg-motivaid-teal text-white px-4 py-3 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                <button class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-3 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink transition">
                   <div class="flex items-center justify-center space-x-2">
                       <span class="text-lg">💉</span>
                       <span>Give Uterotonic</span>
                   </div>
                 </button>
-                <button class="bg-motivaid-teal text-white px-4 py-3 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                <button class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-3 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink transition">
                   <div class="flex items-center justify-center space-x-2">
                       <span class="text-lg">❤️</span>
                       <span>Manage Shock</span>
@@ -398,13 +533,13 @@ const closeAndNavigate = () => {
             <div class="mb-6">
               <h4 class="text-md font-medium text-gray-700 mb-3">Bladder Management</h4>
               <div class="grid grid-cols-2 gap-4">
-                <button class="bg-motivaid-teal text-white px-4 py-3 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                <button class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-3 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink transition">
                   <div class="flex items-center justify-center space-x-2">
                       <span class="text-lg">🩹</span>
                       <span>Catheterize Bladder</span>
                   </div>
                 </button>
-                <button class="bg-motivaid-teal text-white px-4 py-3 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                <button class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-3 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink transition">
                   <div class="flex items-center justify-center space-x-2">
                       <span class="text-lg">➡️</span>
                       <span>Apply NASG</span>
@@ -417,13 +552,13 @@ const closeAndNavigate = () => {
             <div class="mb-6">
               <h4 class="text-md font-medium text-gray-700 mb-3">Uterine/Cervical Management</h4>
               <div class="grid grid-cols-2 gap-4">
-                <button class="bg-motivaid-teal text-white px-4 py-3 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                <button class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-3 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink transition">
                   <div class="flex items-center justify-center space-x-2">
                       <span class="text-lg">👐</span>
                       <span>Clear Uterus/Cervix</span>
                   </div>
                 </button>
-                <button class="bg-motivaid-teal text-white px-4 py-3 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                <button class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-3 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink transition">
                   <div class="flex items-center justify-center space-x-2">
                       <span class="text-lg">➡️</span>
                       <span>Arrange Transfer/Surgery</span>
@@ -436,13 +571,13 @@ const closeAndNavigate = () => {
             <div>
               <h4 class="text-md font-medium text-gray-700 mb-3">Compression and Repair</h4>
               <div class="grid grid-cols-2 gap-4">
-                <button class="bg-motivaid-teal text-white px-4 py-3 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                <button class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-3 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink transition">
                   <div class="flex items-center justify-center space-x-2">
                       <span class="text-lg">👐</span>
                       <span>Bimanual Compression</span>
                   </div>
                 </button>
-                <button class="bg-motivaid-teal text-white px-4 py-3 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                <button class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-3 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink transition">
                   <div class="flex items-center justify-center space-x-2">
                       <span class="text-lg">✂️</span>
                       <span>Repair Cervical Tears</span>
@@ -454,72 +589,44 @@ const closeAndNavigate = () => {
             <!-- Record & Save Button -->
             <section class="mt-8">
                 <div class="flex justify-center">
-                    <button  class="bg-pph-pink text-motivaid-teal px-6 py-4 rounded-lg font-medium border-2 border-motivaid-teal hover:bg-motivaid-teal hover:text-white focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition">
+                    <button  class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-6 py-4 rounded-lg font-medium border-2 border-motivaid-teal hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink transition">
                         Add Another Patient
                     </button>
                 </div>
             </section>
         </section>
-        
+
     </main>
 
-    <!-- Bottom Navigation (Mobile) 
+    <!-- Bottom Navigation (Mobile)
     <nav class="bg-white border-t border-gray-200 px-6 py-3 flex justify-around items-center fixed bottom-0 left-0 right-0 md:hidden">
-        <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+        <button class="flex flex-col items-center text-xs text-gray-500">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
             </svg>
-            <span class="text-xs font-medium">Edit</span>
+            <span>Home</span>
         </button>
-        <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+        <button class="flex flex-col items-center text-xs text-gray-500">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
             </svg>
-            <span class="text-xs font-medium">Select</span>
+            <span>Records</span>
         </button>
-        <button class="flex flex-col items-center space-y-1 text-motivaid-teal">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        <button class="flex flex-col items-center text-xs text-gray-500">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
             </svg>
-            <span class="text-xs font-medium">Save</span>
+            <span>Patients</span>
         </button>
-        <button class="flex flex-col items-center space-y-1 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+        <button class="flex flex-col items-center text-xs text-gray-500">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
             </svg>
-            <span class="text-xs font-medium">Share</span>
+            <span>Settings</span>
         </button>
     </nav>
+    -->
 
-     Desktop Navigation 
-    <nav class="hidden md:flex justify-center space-x-12 py-4 bg-white border-t border-gray-200">
-        <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-            <span class="font-medium">Edit</span>
-        </button>
-        <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
-            </svg>
-            <span class="font-medium">Select</span>
-        </button>
-        <button class="flex items-center space-x-2 text-motivaid-teal">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            <span class="font-medium">Save</span>
-        </button>
-        <button class="flex items-center space-x-2 text-gray-500 hover:text-motivaid-teal transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-            </svg>
-            <span class="font-medium">Share</span>
-        </button>
-    </nav>-->
-    <div class="mt-8 text-center text-gray-400 text-sm">
-        &copy; 2025 MotivAid. All rights reserved.
-    </div>
 </body>
 </template>

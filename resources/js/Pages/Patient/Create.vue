@@ -3,9 +3,9 @@ import { useForm } from '@inertiajs/vue3';
 import { ref, onMounted, computed } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 
-
+const page = usePage();
 
 const form = useForm({
        name: '',
@@ -16,19 +16,77 @@ const form = useForm({
        history_Of_ceaserian_section: '',
        type_of_pregenency: '',
        gestational_age: '',
-       hospital: ''
+       hospital: page.props.auth?.user?.hospital?.name || ''
 })
 
 const checkAge = (event) => {
               const age = parseInt(event.target.value, 10);
-              const warningBadge = document.getElementById('warning-badge');
-              
-              if (!isNaN(age) && age >= 18 && age <= 35) {
-                  warningBadge.classList.add('hidden');
-              } else {
-                  warningBadge.classList.remove('hidden');
-              }
-           };
+              updateWarningBadge();
+};
+
+// Helper function to check if patient has history of antenatal visit NO
+const checkHistoryOfAntenatalVisit = () => {
+    return form.history_of_antenatal_visit === 'no';
+};
+
+// Helper function to check if patient has history of previous PPH YES
+const checkHistoryOfPreviousPPH = () => {
+    return form.history_of_previous_pph === 'yes';
+};
+
+// Helper function to check if patient has history of caesarean section YES
+const checkHistoryOfCaesareanSection = () => {
+    return form.history_Of_ceaserian_section === 'yes';
+};
+
+// Helper function to check gestational age (show warning if <36 or >42)
+const checkGestationalAge = () => {
+    const gestationalAge = parseFloat(form.gestational_age);
+    if (isNaN(gestationalAge)) {
+        return false;
+    }
+    return gestationalAge < 36 || gestationalAge > 42;
+};
+
+// Helper function to check gravida/parity (show warning if numerator or denominator > 4)
+const checkGravidaParity = () => {
+    // Expecting format like "2/3" (gravida/parity)
+    const gravidaParity = form.gravida;
+    if (!gravidaParity.includes('/')) {
+        return false; // Invalid format, assume no risk for now
+    }
+    
+    const [numerator, denominator] = gravidaParity.split('/').map(Number);
+    
+    // Check if either numerator or denominator is greater than 4
+    return (numerator && numerator >= 4) && (denominator && denominator >= 4);
+};
+
+// Helper function to check type of pregnancy (show warning for twin, triplet, higher)
+const checkTypeOfPregnancy = () => {
+    return form.type_of_pregenency !== 'single' && form.type_of_pregenency !== ''; // Only single pregnancy is not high risk
+};
+
+// Helper function to update warning badge visibility based on all risk factors
+const updateWarningBadge = () => {
+    const warningBadge = document.getElementById('warning-badge');
+    
+    // Check all risk factors
+    const isHighRiskAge = !isNaN(parseInt(form.age)) && (parseInt(form.age) < 18 || parseInt(form.age) > 35);
+    const hasNoAntenatalVisit = checkHistoryOfAntenatalVisit();
+    const hasPreviousPPH = checkHistoryOfPreviousPPH();
+    const hasCaesareanSection = checkHistoryOfCaesareanSection();
+    const hasAbnormalGestationalAge = checkGestationalAge();
+    const hasHighGravidaParity = checkGravidaParity();
+    const hasHighRiskPregnancyType = checkTypeOfPregnancy();
+    
+    // Show warning badge if any risk factor is true
+    if (isHighRiskAge || hasNoAntenatalVisit || hasPreviousPPH || hasCaesareanSection || hasAbnormalGestationalAge || hasHighGravidaParity || hasHighRiskPregnancyType) {
+        warningBadge.classList.remove('hidden');
+    } else {
+        warningBadge.classList.add('hidden');
+    }
+};
 
 const clockTime = ref('');
 
@@ -70,9 +128,15 @@ const isFormValid = computed(() => {
         errors.history_of_antenatal_visit = 'Please select a valid option';
     }
     
-    // Gravida validation
+    // Gravida validation - should be in format number/number
     if (!form.gravida.trim()) {
-        errors.gravida = 'Gravida is required';
+        errors.gravida = 'Gravida/Parity is required';
+    } else {
+        // Validate format: number/number
+        const gravidaPattern = /^\d+\/\d+$/;
+        if (!gravidaPattern.test(form.gravida)) {
+            errors.gravida = 'Gravida/Parity must be in format: number/number (e.g., 2/1)';
+        }
     }
     
     // History of previous PPH validation
@@ -83,8 +147,10 @@ const isFormValid = computed(() => {
     }
     
     // History of Caesarean section validation
-    if (!form.history_Of_ceaserian_section.trim()) {
+    if (!form.history_Of_ceaserian_section) {
         errors.history_Of_ceaserian_section = 'History of Caesarean section is required';
+    } else if (!['yes', 'no'].includes(form.history_Of_ceaserian_section)) {
+        errors.history_Of_ceaserian_section = 'Please select a valid option';
     }
     
     // Type of pregnancy validation
@@ -94,14 +160,14 @@ const isFormValid = computed(() => {
         errors.type_of_pregenency = 'Please select a valid pregnancy type';
     }
     
-    // Gestational age validation
+    // Gestational age validation - should be a number
     if (!form.gestational_age.trim()) {
         errors.gestational_age = 'Gestational age is required';
-    }
-    
-    // Hospital validation
-    if (!form.hospital.trim()) {
-        errors.hospital = 'Hospital is required';
+    } else {
+        const gestationalAgeNum = parseFloat(form.gestational_age);
+        if (isNaN(gestationalAgeNum) || gestationalAgeNum <= 0) {
+            errors.gestational_age = 'Gestational age must be a positive number';
+        }
     }
     
     return Object.keys(errors).length === 0;
@@ -109,6 +175,12 @@ const isFormValid = computed(() => {
 
 // Modal state
 const showSuccessModal = ref(false);
+
+// Helper function to handle 419 errors by refreshing the page
+const handle419Error = () => {
+    console.log('419 error detected, refreshing page to get new CSRF token');
+    window.location.reload();
+};
 
 const addPatient = () => {
     // Only submit if form is valid
@@ -125,12 +197,35 @@ const addPatient = () => {
             },
             onError: (errors) => {
                 console.log('Errors occurred:', errors);
-                // Show the warning if it's a high-risk age
-                const ageNum = parseInt(form.age);
-                if (!isNaN(ageNum) && (ageNum < 18 || ageNum > 35)) {
-                    const warningBadge = document.getElementById('warning-badge');
-                    if (warningBadge) {
-                        warningBadge.classList.remove('hidden');
+                
+                // Check if the error appears to be a 419 (CSRF token mismatch)
+                // Since Inertia.js handles 419 errors differently, we check for common signs
+                const hasGenericError = errors._other || 
+                                      (form.errors && Object.keys(form.errors).length === 0 && form.wasSuccessful === false);
+                
+                // If there's no specific validation errors but the request still failed,
+                // it might be a 419 error
+                if (hasGenericError || Object.keys(errors).length === 0) {
+                    // Wait a short time to see if the 419 is detected differently
+                    setTimeout(() => {
+                        // Check if we're getting a 419 in the page response
+                        // This catches cases where 419 error redirects to an error page
+                        if (window.location.href.includes('419')) {
+                            handle419Error();
+                        }
+                    }, 100);
+                }
+                
+                // Update warning badge based on risk factors
+                updateWarningBadge();
+            },
+            onFinish: () => {
+                // As a fallback, check if the submission might have encountered a 419 error
+                // This catches cases where the request fails without clear error messages
+                if (form.hasErrors && !Object.keys(form.errors).some(key => key !== '_other')) {
+                    // If only a generic error exists, it might be a 419
+                    if (form.errors._other && form.errors._other.includes('419')) {
+                        handle419Error();
                     }
                 }
             }
@@ -138,6 +233,8 @@ const addPatient = () => {
     } else {
         // Display client-side validation errors - in a real app you might want to show them in the UI
         console.log('Form validation failed');
+        // Update warning badge based on risk factors even when validation fails
+        updateWarningBadge();
     }
 };
 
@@ -194,17 +291,17 @@ const closeAndReset = () => {
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto px-4 py-6">
         <h2 class="text-2xl font-semibold text-gray-800 mb-6">Patient Bio Data</h2>
-        <!-- Warning Badge -->
-                        <div id="warning-badge" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 hidden">
-                            <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+        <!-- Warning Badge 
+        <div id="warning-badge" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 hidden">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                            </div>
-                            <p class="ml-3 text-sm text-yellow-700">High Risk of Postpartum Hemorrhage</p>
-                            </div>
-                        </div>
+                        </svg>
+                    </div>
+                    <p class="ml-3 text-sm text-yellow-700">High Risk of Postpartum Hemorrhage</p>
+                </div>
+       </div> -->
         <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h3 class="text-lg font-medium text-gray-700 mb-4">Patient Information</h3>
             
@@ -229,7 +326,7 @@ const closeAndReset = () => {
                         <label class="block text-sm font-medium text-gray-700 mb-1">Age</label>
                         <input 
                           v-model="form.age" 
-                          @input="checkAge" 
+                          @input="updateWarningBadge" 
                           type="text" 
                           :class="{
                             'border-red-500': form.errors.age,
@@ -238,11 +335,20 @@ const closeAndReset = () => {
                           class="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
                         >
                         <div v-if="form.errors.age" class="text-red-500 text-sm mt-1">{{ form.errors.age }}</div>
+                        <!-- Individual warning badge for age -->
+                        <div v-if="!isNaN(parseInt(form.age)) && (parseInt(form.age) < 18 || parseInt(form.age) > 35)" 
+                             class="bg-yellow-50 border-l-4 border-yellow-400 p-2 mt-1 text-xs text-yellow-700 flex items-center">
+                            <svg class="h-4 w-4 mr-1 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            High Risk of Postpartum Hemorrhage
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">History Of Antenatal visit</label>
                         <select 
                           v-model="form.history_of_antenatal_visit" 
+                          @change="updateWarningBadge"
                           :class="{
                             'border-red-500': form.errors.history_of_antenatal_visit,
                             'border-gray-300': !form.errors.history_of_antenatal_visit
@@ -254,6 +360,14 @@ const closeAndReset = () => {
                             <option value="no">No</option>
                         </select>
                         <div v-if="form.errors.history_of_antenatal_visit" class="text-red-500 text-sm mt-1">{{ form.errors.history_of_antenatal_visit }}</div>
+                        <!-- Individual warning badge for history of antenatal visit -->
+                        <div v-if="form.history_of_antenatal_visit === 'no'" 
+                             class="bg-yellow-50 border-l-4 border-yellow-400 p-2 mt-1 text-xs text-yellow-700 flex items-center">
+                            <svg class="h-4 w-4 mr-1 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            High Risk of Postpartum Hemorrhage
+                        </div>
                     </div>
                 </div>
 
@@ -262,6 +376,7 @@ const closeAndReset = () => {
                         <label class="block text-sm font-medium text-gray-700 mb-1">Gravida/Parity</label>
                         <input 
                           v-model="form.gravida" 
+                          @input="updateWarningBadge"
                           type="text" 
                           :class="{
                             'border-red-500': form.errors.gravida,
@@ -270,11 +385,20 @@ const closeAndReset = () => {
                           class="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
                         >
                         <div v-if="form.errors.gravida" class="text-red-500 text-sm mt-1">{{ form.errors.gravida }}</div>
+                        <!-- Individual warning badge for gravida/parity -->
+                        <div v-if="checkGravidaParity()" 
+                             class="bg-yellow-50 border-l-4 border-yellow-400 p-2 mt-1 text-xs text-yellow-700 flex items-center">
+                            <svg class="h-4 w-4 mr-1 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            High Risk of Postpartum Hemorrhage
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">History of Previous PPH</label>
                         <select 
                           v-model="form.history_of_previous_pph" 
+                          @change="updateWarningBadge"
                           :class="{
                             'border-red-500': form.errors.history_of_previous_pph,
                             'border-gray-300': !form.errors.history_of_previous_pph
@@ -286,27 +410,48 @@ const closeAndReset = () => {
                             <option value="no">No</option>
                         </select>
                         <div v-if="form.errors.history_of_previous_pph" class="text-red-500 text-sm mt-1">{{ form.errors.history_of_previous_pph }}</div>
+                        <!-- Individual warning badge for history of previous PPH -->
+                        <div v-if="form.history_of_previous_pph === 'yes'" 
+                             class="bg-yellow-50 border-l-4 border-yellow-400 p-2 mt-1 text-xs text-yellow-700 flex items-center">
+                            <svg class="h-4 w-4 mr-1 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            High Risk of Postpartum Hemorrhage
+                        </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">History Of Ceaserian Section</label>
-                        <input 
+                        <select 
                           v-model="form.history_Of_ceaserian_section" 
-                          type="text" 
+                          @change="updateWarningBadge"
                           :class="{
                             'border-red-500': form.errors.history_Of_ceaserian_section,
                             'border-gray-300': !form.errors.history_Of_ceaserian_section
                           }"
                           class="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
                         >
+                            <option value="">Select</option>
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
                         <div v-if="form.errors.history_Of_ceaserian_section" class="text-red-500 text-sm mt-1">{{ form.errors.history_Of_ceaserian_section }}</div>
+                        <!-- Individual warning badge for history of caesarean section -->
+                        <div v-if="form.history_Of_ceaserian_section === 'yes'" 
+                             class="bg-yellow-50 border-l-4 border-yellow-400 p-2 mt-1 text-xs text-yellow-700 flex items-center">
+                            <svg class="h-4 w-4 mr-1 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            High Risk of Postpartum Hemorrhage
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Type Of Pregnancy</label>
                         <select 
                           v-model="form.type_of_pregenency" 
+                          @change="updateWarningBadge"
                           :class="{
                             'border-red-500': form.errors.type_of_pregenency,
                             'border-gray-300': !form.errors.type_of_pregenency
@@ -317,9 +462,17 @@ const closeAndReset = () => {
                             <option value="single">Single Pregnancy</option>
                             <option value="twin">Twin Pregnancy</option>
                             <option value="triplet">Triplet Pregnancy</option>
-                            <option value="higher">Higher</option>
+                            <option value="higher">Higher Multiple</option>
                         </select>
                         <div v-if="form.errors.type_of_pregenency" class="text-red-500 text-sm mt-1">{{ form.errors.type_of_pregenency }}</div>
+                        <!-- Individual warning badge for type of pregnancy -->
+                        <div v-if="form.type_of_pregenency !== 'single' && form.type_of_pregenency !== ''" 
+                             class="bg-yellow-50 border-l-4 border-yellow-400 p-2 mt-1 text-xs text-yellow-700 flex items-center">
+                            <svg class="h-4 w-4 mr-1 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            High Risk of Postpartum Hemorrhage
+                        </div>
                     </div>
                 </div>
 
@@ -327,6 +480,7 @@ const closeAndReset = () => {
                     <label class="block text-sm font-medium text-gray-700 mb-1">Gestational Age</label>
                     <input 
                       v-model="form.gestational_age" 
+                      @input="updateWarningBadge"
                       type="text"  
                       :class="{
                         'border-red-500': form.errors.gestational_age,
@@ -335,6 +489,14 @@ const closeAndReset = () => {
                       class="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
                     >
                     <div v-if="form.errors.gestational_age" class="text-red-500 text-sm mt-1">{{ form.errors.gestational_age }}</div>
+                    <!-- Individual warning badge for gestational age -->
+                    <div v-if="checkGestationalAge()" 
+                         class="bg-yellow-50 border-l-4 border-yellow-400 p-2 mt-1 text-xs text-yellow-700 flex items-center">
+                        <svg class="h-4 w-4 mr-1 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        High Risk of Postpartum Hemorrhage
+                    </div>
                 </div>
 
                 <div>
@@ -342,9 +504,11 @@ const closeAndReset = () => {
                     <input 
                       v-model="form.hospital" 
                       type="text" 
+                      readonly
                       :class="{
                         'border-red-500': form.errors.hospital,
-                        'border-gray-300': !form.errors.hospital
+                        'border-gray-300': !form.errors.hospital,
+                        'bg-gray-100': true
                       }"
                       class="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
                     >
@@ -359,7 +523,7 @@ const closeAndReset = () => {
                             }"
                             :disabled="form.processing || !isFormValid"
                             type="submit" 
-                            class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-motivaid-teal-dark focus:outline-none focus:ring-2 focus:ring-motivaid-teal">
+                            class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-2 rounded-md hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink">
                             Save Profile & Proceed to Delivery Mode
                         </button>
                     </div>
@@ -443,7 +607,7 @@ const closeAndReset = () => {
             <div class="flex justify-center">
                 <button 
                     @click="closeAndReset"
-                    class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
+                    class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-2 rounded-md hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink"
                 >
                     Continue
                 </button>

@@ -3,6 +3,26 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import { Link } from '@inertiajs/vue3';
+import { useSpeechSynthesis } from '@/Composables/speech.js';
+
+// Initialize speech synthesis
+const {
+  isSupported,
+  isSpeaking,
+  speak,
+  cancel
+} = useSpeechSynthesis();
+
+// Function to speak text when UI elements appear or are interacted with
+const speakText = (text) => {
+  if (isSupported.value) {
+    // Cancel any ongoing speech first
+    if (isSpeaking.value) {
+      cancel();
+    }
+    speak(text);
+  }
+};
 
 // Reactive data
 const timeString = ref('Date:');
@@ -73,17 +93,37 @@ const updateThrombinDoneButton = () => {
 const handleTonicityYes = () => {
   showTonicityFollowup.value = false;
   currentStep.value = 2;
+  
+  if (isSupported.value) {
+    speakText("Step 2: TISSUE, Select YES or NO");
+  }
 };
 
 const handleTonicityNo = () => {
   showTonicityFollowup.value = true;
   currentStep.value = 1;
+  
+  if (isSupported.value) {
+    speakText("Follow these steps. Massage the uterus. If full bladder, empty it.");
+  }
 };
 
 // Watch for changes in tonicity checkboxes
 const checkTonicityAllChecked = () => {
   if (areAllCheckboxesChecked([tonicityMassage, tonicityEmpty])) {
     currentStep.value = 2;
+    
+    if (isSupported.value) {
+      speakText("Step 2: TISSUE, Select YES or NO");
+    }
+  }
+  
+  // Speak individual checkbox selections
+  if (tonicityMassage.value && isSupported.value) {
+    speakText("Massaging the uterus checked");
+  }
+  if (tonicityEmpty.value && isSupported.value) {
+    speakText("Emptying full bladder checked");
   }
 };
 
@@ -91,17 +131,34 @@ const checkTonicityAllChecked = () => {
 const handleTissueYes = () => {
   showTissueFollowup.value = true;
   currentStep.value = 2;
+  
+  if (isSupported.value) {
+    speakText("Follow these steps. Remove Manually.");
+  }
 };
 
 const handleTissueNo = () => {
   showTissueFollowup.value = false;
   currentStep.value = 3;
+  
+  if (isSupported.value) {
+    speakText("Step 3: TEAR, Select YES or NO");
+  }
 };
 
 // Watch for changes in tissue checkboxes
 const checkTissueAllChecked = () => {
   if (areAllCheckboxesChecked([tissueRemove])) {
     currentStep.value = 3;
+    
+    if (isSupported.value) {
+      speakText("Step 3: TEAR, Select YES or NO");
+    }
+  }
+  
+  // Speak individual checkbox selections
+  if (tissueRemove.value && isSupported.value) {
+    speakText("Removing manually checked");
   }
 };
 
@@ -109,17 +166,34 @@ const checkTissueAllChecked = () => {
 const handleTearYes = () => {
   showTearFollowup.value = true;
   currentStep.value = 3;
+  
+  if (isSupported.value) {
+    speakText("Follow these steps. Repair.");
+  }
 };
 
 const handleTearNo = () => {
   showTearFollowup.value = false;
   currentStep.value = 4;
+  
+  if (isSupported.value) {
+    speakText("Step 4: THROMBIN, Select YES or NO");
+  }
 };
 
 // Watch for changes in tear checkboxes
 const checkTearAllChecked = () => {
   if (areAllCheckboxesChecked([tearRepair])) {
     currentStep.value = 4;
+    
+    if (isSupported.value) {
+      speakText("Step 4: THROMBIN, Select YES or NO");
+    }
+  }
+  
+  // Speak individual checkbox selections
+  if (tearRepair.value && isSupported.value) {
+    speakText("Repairing checked");
   }
 };
 
@@ -159,11 +233,45 @@ const handleThrombinNo = () => {
 // Watch for changes in thrombin checkboxes
 const checkThrombinAllChecked = () => {
   updateThrombinDoneButton();
+  
+  // Check which group is active and speak appropriate completion message
+  if (showThrombinYesGroup.value && areAllCheckboxesChecked([thrombinYesAdvance])) {
+    if (isSupported.value) {
+      speakText("Diagnostic steps completed successfully. Continue to treatment.");
+    }
+  } else if (showThrombinNoGroup.value && areAllCheckboxesChecked([thrombinNoContinue, thrombinNoMonitor, thrombinNoVitals, thrombinNoBf])) {
+    if (isSupported.value) {
+      speakText("Diagnostic steps completed successfully. Continue to treatment.");
+    }
+  }
+  
+  // Speak individual checkbox selections for Thrombin Yes group
+  if (thrombinYesAdvance.value && showThrombinYesGroup.value && isSupported.value) {
+    speakText("Seeking advanced care checked");
+  }
+  
+  // Speak individual checkbox selections for Thrombin No group
+  if (thrombinNoContinue.value && showThrombinNoGroup.value && isSupported.value) {
+    speakText("Continuing care checked");
+  }
+  if (thrombinNoMonitor.value && showThrombinNoGroup.value && isSupported.value) {
+    speakText("Monitoring bleeding checked");
+  }
+  if (thrombinNoVitals.value && showThrombinNoGroup.value && isSupported.value) {
+    speakText("Checking vital signs and tone checked");
+  }
+  if (thrombinNoBf.value && showThrombinNoGroup.value && isSupported.value) {
+    speakText("Encouraging breastfeeding checked");
+  }
 };
 
 // Handle Done button click
 const handleDoneClick = () => {
   showCompletionPopup.value = true;
+  
+  if (isSupported.value) {
+    speakText("Diagnostic steps completed successfully.");
+  }
 };
 
 // Close completion popup and navigate to treatment page
@@ -172,12 +280,30 @@ const closeAndNavigate = () => {
   setTimeout(() => {
     window.location.href = route('treatment.index');
   }, 300); // Small delay to allow modal to close smoothly
+  
+  if (isSupported.value) {
+    speakText("Continuing to treatment page.");
+  }
 };
 
 onMounted(() => {
   // Start updating time immediately
   updateTime();
   timeInterval = setInterval(updateTime, 1000);
+  
+  // Speak initial page elements when component loads
+  if (isSupported.value) {
+    // Cancel any ongoing speech first
+    if (isSpeaking.value) {
+      cancel();
+    }
+    
+    // Speak the main title and description as a single phrase
+    speakText("Bleeding After Birth. Steps For Diagnostic. Estimated blood loss greater than 500 mL.");
+    
+    // Then introduce the first step 
+    setTimeout(() => speakText("Step 1: TONICITY, Select YES or NO"), 2000);
+  }
 });
 
 onUnmounted(() => {
@@ -243,7 +369,7 @@ onUnmounted(() => {
             <div class="mb-8" v-if="currentStep >= 1">
                 <h4 class="text-lg font-medium text-gray-700 mb-4">Step 1: TONICITY</h4>
                 <div class="flex space-x-4">
-                    <button @click="handleTonicityYes" class="flex-1 bg-motivaid-teal text-white py-3 px-6 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-2 transition">YES</button>
+                    <button @click="handleTonicityYes" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition">YES</button>
                     <button @click="handleTonicityNo" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition">NO</button>
                 </div>
 
@@ -264,7 +390,7 @@ onUnmounted(() => {
             <div class="mb-8" v-if="currentStep >= 2">
                 <h4 class="text-lg font-medium text-gray-700 mb-4">Step 2: TISSUE</h4>
                 <div class="flex space-x-4">
-                    <button @click="handleTissueYes" class="flex-1 bg-motivaid-teal text-white py-3 px-6 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-2 transition">YES</button>
+                    <button @click="handleTissueYes" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition">YES</button>
                     <button @click="handleTissueNo" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition">NO</button>
                 </div>
                 <div v-if="showTissueFollowup" class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
@@ -280,7 +406,7 @@ onUnmounted(() => {
             <div class="mb-8" v-if="currentStep >= 3">
                 <h4 class="text-lg font-medium text-gray-700 mb-4">Step 3: TEAR</h4>
                 <div class="flex space-x-4">
-                    <button @click="handleTearYes" class="flex-1 bg-motivaid-teal text-white py-3 px-6 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-2 transition">YES</button>
+                    <button @click="handleTearYes" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition">YES</button>
                     <button @click="handleTearNo" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition">NO</button>
                 </div>
                 <div v-if="showTearFollowup" class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
@@ -296,7 +422,7 @@ onUnmounted(() => {
             <div class="mb-8" v-if="currentStep >= 4">
                 <h4 class="text-lg font-medium text-gray-700 mb-4">Step 4: THROMBIN</h4>
                 <div class="flex space-x-4 mb-6">
-                    <button @click="handleThrombinYes" class="flex-1 bg-motivaid-teal text-white py-3 px-6 rounded-lg font-medium hover:bg-teal-700 focus:outline-none transition">YES</button>
+                    <button @click="handleThrombinYes" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none transition">YES</button>
                     <button @click="handleThrombinNo" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none transition">NO</button>
                 </div>
                 <div v-if="showThrombinFollowup" class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
@@ -327,7 +453,7 @@ onUnmounted(() => {
                 
             </div>
             <div class="flex justify-center mt-4">
-                <button v-if="showDoneButton" @click="handleDoneClick" class="bg-motivaid-teal text-white py-2 px-4 rounded-lg font-medium hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-2 transition w-full max-w-xs">Done</button>
+                <button v-if="showDoneButton" @click="handleDoneClick" class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-2 px-4 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition w-full max-w-xs">Done</button>
             </div>
         </section>
     </main>
@@ -346,7 +472,7 @@ onUnmounted(() => {
             <div class="flex justify-center">
                 <button 
                     @click="closeAndNavigate"
-                    class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
+                    class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-hotpink-800 focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
                 >
                     Continue to Treatment
                 </button>

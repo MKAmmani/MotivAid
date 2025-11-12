@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\AfricaTalkingService;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
+use Exception;
 
 class NotificationController extends Controller
 {
@@ -16,72 +15,57 @@ class NotificationController extends Controller
         $this->africaTalking = $africaTalking;
     }
 
-    public function sendMessage(Request $request)
+    public function sendMessage()
     {
         try {
-            $to = $request->input('to', '+2347082262502'); // Default recipient phone number
-            $message = $request->input('message', 'Hello! This is a notification from your Laravel app.');
-            
-            // Validate inputs
-            if (empty($to) || empty($message)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Recipient phone number and message are required'
-                ], 400);
-            }
-            
+            $to = '+2347082262502'; // Replace with the recipient's phone number
+            $message = 'Hello! This is a notification from your Laravel app.';
             $response = $this->africaTalking->sendSms($to, $message);
-            
+
             return response()->json([
                 'success' => true,
-                'data' => $response,
-                'message' => 'SMS sent successfully'
+                'response' => $response,
             ]);
-            
-        } catch (\Exception $e) {
-            Log::error('Error sending SMS: ' . $e->getMessage(), [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send SMS: ' . $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    public function makeVoiceCall(Request $request)
+     public function makeVoiceCall(Request $request)
     {
         try {
-            $from = $request->input('from', '+2347082262502'); // Default from number
-            $to = $request->input('to', '+2347035689277');     // Default to number
-            
-            // Validate inputs
-            if (empty($from) || empty($to)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Both from and to phone numbers are required'
-                ], 400);
-            }
-            
-            $response = $this->africaTalking->makeCall($from, $to);
-            
+            // ✅ Africa's Talking setup
+            $username = env('AFRICASTALKING_USERNAME', 'sandbox');
+            $apiKey = env('AFRICASTALKING_API_KEY');
+            $AT = new \AfricasTalking\SDK\AfricasTalking($username, $apiKey);
+
+            $voice = $AT->voice();
+
+            // ✅ Destination number (from frontend or default)
+            $to = $request->input('to', '+2347082262502');
+
+            // ✅ Make the call
+            $result = $voice->call([
+                'from' => env('AFRICASTALKING_VOICE_NUMBER', '+2347000000000'), // optional or use your Africa's Talking number
+                'to' => $to,
+            ]);
+
+            //Log::info('Voice call result:', (array) $result);
+
             return response()->json([
                 'success' => true,
-                'data' => $response,
-                'message' => 'Voice call initiated successfully'
+                'message' => 'Voice call initiated successfully!',
+                'data' => $result
             ]);
-            
         } catch (\Exception $e) {
-            Log::error('Error making voice call: ' . $e->getMessage(), [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+            //Log::error('Voice call failed: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to make voice call: ' . $e->getMessage()
+                'message' => 'Failed to initiate call: ' . $e->getMessage()
             ], 500);
         }
     }

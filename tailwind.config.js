@@ -16,7 +16,8 @@ export default {
                 sans: ["Figtree", ...defaultTheme.fontFamily.sans],
             },
             colors: {
-                "motivaid-teal": "#0D9488",
+                "motivaid-pink": "#FF69B4",
+                "hotpink-800": "#FF69B4", // Using the same pink color for hotpink-800
             },
         },
     },

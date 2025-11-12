@@ -17,6 +17,17 @@ const form = useForm({
     remember: false,
 });
 
+/*const submit = () => {
+    form.transform(data => ({
+        ...data,
+        _token: document.querySelector('meta[name="csrf-token"]').content
+    })).post(route('login'), {
+        onFinish: () => {
+            form.reset('password');
+        },
+    });
+}; */
+
 const submit = () => {
     form.post(route('login'), {
         onFinish: () => form.reset('password'),
@@ -67,7 +78,7 @@ const submit = () => {
             </div>
             <button :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
-                    type="submit" class="w-full bg-motivaid-teal text-white py-3 px-4 rounded-lg font-medium hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 transform hover:scale-[1.02]">
+                    type="submit" class="w-full bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-4 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 transform hover:scale-[1.02]">
                 Sign in
             </button>
         </form>

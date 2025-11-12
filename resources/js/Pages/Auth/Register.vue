@@ -6,16 +6,24 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
+const props = defineProps({
+    hospitals: Array
+});
+
 const form = useForm({
     name: '',
     email: '',
     password: '',
     password_confirmation: '',
+    hospital_id: '',
 });
 
 const submit = () => {
     form.post(route('register'), {
         onFinish: () => form.reset('password', 'password_confirmation'),
+        onSuccess: () => {  
+            window.location.reload(); // forces new CSRF token
+        },
     });
 };
 </script>
@@ -51,6 +59,19 @@ const submit = () => {
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
             <div>
+                <label for="hospital_id" class="block text-sm font-medium text-gray-700 mb-2">Hospital</label>
+                <select 
+                    id="hospital_id"
+                    v-model="form.hospital_id" 
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-1 transition duration-200">
+                    <option value="" disabled>Select a Hospital</option>
+                    <option v-for="hospital in hospitals" :key="hospital.id" :value="hospital.id">
+                        {{ hospital.name }} - {{ hospital.location }}
+                    </option>
+                </select>
+                <InputError class="mt-2" :message="form.errors.hospital_id" />
+            </div>
+            <div>
                 <label for="signup-password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
                 <input id="signup-password"  v-model="form.password" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-1 transition duration-200">
                 <InputError class="mt-2" :message="form.errors.password" />
@@ -65,7 +86,7 @@ const submit = () => {
             </div>
             <button :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
-                    type="submit" class="w-full bg-motivaid-teal text-white py-3 px-4 rounded-lg font-medium hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 transform hover:scale-[1.02]">
+                    type="submit" class="w-full bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-4 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 transform hover:scale-[1.02]">
                 Sign up
             </button>
         </form>

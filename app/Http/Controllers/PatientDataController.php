@@ -14,7 +14,7 @@ class PatientDataController extends Controller
      */
     public function index()
     {   
-        return Inertia('Patient/Create',);
+        return Inertia('Patient/Create');
     }
 
     /**
@@ -31,10 +31,14 @@ class PatientDataController extends Controller
             'history_Of_ceaserian_section' => 'required|string|max:255',
             'type_of_pregenency' => 'required|in:single,twin,triplet,higher',
             'gestational_age' => 'required|string|max:255',
-            'hospital' => 'required|string|max:255',
-            
+            // Remove hospital validation since it's automatically set from the authenticated user
         ]);
+        
         $validatedData['user_id'] = auth()->id();
+        
+        // Automatically set hospital to the authenticated user's hospital
+        $user = auth()->user();
+        $validatedData['hospital'] = $user->hospital ? $user->hospital->name : 'No Hospital Assigned';
 
         $patient = Patient_data::create($validatedData);
 

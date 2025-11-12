@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import { Link, router } from '@inertiajs/vue3';
+import { useSpeechSynthesis } from '@/Composables/speech.js';
 
 // Define props
 const props = defineProps({
@@ -16,6 +17,17 @@ const props = defineProps({
     default: null
   }
 });
+
+// Initialize speech synthesis
+const { 
+  isSupported, 
+  isSpeaking, 
+  speak, 
+  cancel 
+} = useSpeechSynthesis();
+
+// TTS repetition interval
+let ttsInterval = null;
 
 // Nigeria time
 const nigeriaTime = ref('');
@@ -119,6 +131,15 @@ const recordStepCompletion = (stepIndex) => {
 const handleNextClick = () => {
   if (!nextBtnEnabled.value) return;
 
+  // Cancel any ongoing speech and repetition when moving to next step
+  if (isSpeaking.value) {
+    cancel();
+  }
+  if (ttsInterval) {
+    clearInterval(ttsInterval);
+    ttsInterval = null;
+  }
+
   if (currentIndex.value < allItems.value.length - 1) {
     // Record the completion of the current step
     if (allItems.value[currentIndex.value].checked) {
@@ -127,6 +148,43 @@ const handleNextClick = () => {
     
     currentIndex.value++;
     allItems.value[currentIndex.value].visible = true;
+    
+    // Start TTS for the newly visible step
+    if (isSupported.value) {
+      const item = allItems.value[currentIndex.value];
+      const textToSpeak = `${item.title}. ${item.description ? item.description : ''}`;
+      
+      // Cancel any ongoing speech first
+      if (isSpeaking.value) {
+        cancel();
+      }
+      speak(textToSpeak);
+      
+      // Clear any existing interval before setting a new one to prevent memory leaks
+      if (ttsInterval) {
+        clearInterval(ttsInterval);
+        ttsInterval = null;
+      }
+      
+      // Set up interval to repeat the speech for this step
+      const currentStepIndex = currentIndex.value; // Capture the current step index to compare against
+      ttsInterval = setInterval(() => {
+        if (currentIndex.value === currentStepIndex && isSupported.value) { // Only repeat if this is still the current step
+          // Speak again after a short delay, canceling any previous speech first
+          setTimeout(() => {
+            if (currentIndex.value === currentStepIndex && isSupported.value) {
+              speak(textToSpeak);
+            }
+          }, 100);
+        } else {
+          // If we've moved to a different step, clear the interval
+          if (ttsInterval) {
+            clearInterval(ttsInterval);
+            ttsInterval = null;
+          }
+        }
+      }, 2000); // Repeat every 2 seconds
+    }
     
     // Update button state based on current item's checkbox
     updateNextState();
@@ -159,6 +217,7 @@ const updateNextState = () => {
 // Handle checkbox change
 const handleCheckboxChange = (index) => {
   allItems.value[index].checked = !allItems.value[index].checked;
+  
   updateNextState();
 };
 
@@ -184,6 +243,38 @@ onMounted(() => {
   
   // Initialize checklist
   initializeChecklist();
+  
+  // Start TTS for the first visible item
+  if (isSupported.value && allItems.value.length > 0) {
+    const firstItem = allItems.value[0];
+    const textToSpeak = `${firstItem.title}. ${firstItem.description ? firstItem.description : ''}`;
+    
+    // Wait a moment to ensure UI is ready before starting speech
+    setTimeout(() => {
+      if (isSupported.value) {
+        speak(textToSpeak);
+        
+        // Set up interval to repeat the speech for this step
+        const currentStepIndex = 0; // Store the initial index to compare against
+        ttsInterval = setInterval(() => {
+          if (currentIndex.value === currentStepIndex && isSupported.value) { // Only repeat if this is still the current step
+            // Cancel any ongoing speech first
+            if (isSpeaking.value) {
+              cancel();
+            }
+            // Speak again after a short delay
+            setTimeout(() => {
+              speak(textToSpeak);
+            }, 100);
+          } else {
+            // If we've moved to a different step, clear the interval
+            clearInterval(ttsInterval);
+            ttsInterval = null;
+          }
+        }, 2000); // Repeat every 2 seconds
+      }
+    }, 500);
+  }
 });
 
 // Modal state
@@ -208,6 +299,15 @@ onUnmounted(() => {
   }
   if (tickInterval) {
     clearInterval(tickInterval);
+  }
+  // Clear TTS interval to prevent memory leaks
+  if (ttsInterval) {
+    clearInterval(ttsInterval);
+    ttsInterval = null;
+  }
+  // Cancel any ongoing speech
+  if (isSpeaking.value) {
+    cancel();
   }
 });
 </script>
@@ -254,7 +354,7 @@ onUnmounted(() => {
         <!-- Main Content -->
       <main class="flex-1 overflow-y-auto px-4 py-6">
         <!-- Title Section -->
-        <section class="bg-motivaid-teal text-white px-6 py-8 rounded-lg mb-6">
+        <section class="bg-white px-6 py-8 rounded-lg mb-6">
             <h2 class="text-2xl font-semibold mb-2">Steps For Prevension</h2>
             <p class="text-motivaid-teal/90 font-medium">(Delivery Mode)</p>
         </section>
@@ -294,16 +394,28 @@ onUnmounted(() => {
             <ul class="space-y-3">
             <li v-for="(item, index) in allItems" :key="item.id" 
                 v-show="item.visible" 
-                class="flex items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition">
+                class="flex items-start p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition">
             <input 
                 type="checkbox" 
                 :checked="item.checked"
                 @change="handleCheckboxChange(index)"
-                class="h-5 w-5 text-motivaid-teal focus:ring-motivaid-teal rounded mr-3">
+                class="h-5 w-5 text-motivaid-teal focus:ring-motivaid-teal rounded mt-0.5 mr-3">
             <div>
-                <span class="text-sm text-gray-700">{{ item.title }}</span>
-                <p class="text-sm text-gray-500 mt-2" v-if="item.description">{{ item.description }}</p>
-                <p class="text-sm text-gray-500 mt-2" v-else></p>
+                <span class="text-sm text-gray-700"><strong>{{ item.title }}</strong></span>
+                <!-- Content for all steps using controller description -->
+                <div v-if="item.description" class="mt-2">
+                    <!-- For step 1, split description by periods and show each with a checkmark -->
+                    <div  class="space-y-2">
+                        <p v-for="(part, index) in item.description.split('. ').filter(p => p.trim() !== '')" 
+                           :key="index" 
+                           class="text-sm text-gray-700 flex items-start">
+                            <span class="text-green-600 mr-2">✓</span>
+                            <span>{{ part }}{{ !part.endsWith('.') ? '.' : '' }}</span>
+                        </p>
+                    </div>
+                    <!-- For other steps, show description as a single paragraph -->
+                   
+                </div> 
             </div>
             </li>
             </ul>
@@ -314,7 +426,7 @@ onUnmounted(() => {
                 @click="handleNextClick"
                 :disabled="!nextBtnEnabled"
                 :class="[
-                    'bg-motivaid-teal text-white px-4 py-2 rounded-md font-medium hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:ring-offset-2',
+                    'bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-2 rounded-md font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2',
                     {'opacity-50 cursor-not-allowed': !nextBtnEnabled}
                 ]">
                 {{ nextBtnText }}
@@ -325,7 +437,7 @@ onUnmounted(() => {
         <!-- Action Button -->
         <div v-if="allStepsCompleted" class="mb-6 flex justify-start">
             <button 
-                class="bg-motivaid-teal text-white font-medium px-4 py-2 rounded-md hover:bg-motivaid-teal-dark focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
+                class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white font-medium px-4 py-2 rounded-md hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink"
                 @click="handleDoneClick"
             >
                 Move to Diagonestic
@@ -403,7 +515,7 @@ onUnmounted(() => {
             <div class="flex justify-center">
                 <button 
                     @click="closeAndNavigate"
-                    class="bg-motivaid-teal text-white px-4 py-2 rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
+                    class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-2 rounded-md hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink"
                 >
                     Continue
                 </button>

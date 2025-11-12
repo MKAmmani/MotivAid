@@ -13,11 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        $middleware->alias([
+            'check.patient.ownership' => \App\Http\Middleware\CheckPatientOwnership::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
