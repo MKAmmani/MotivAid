@@ -14,11 +14,17 @@ const {
   isSupported,
   isSpeaking,
   speak,
-  cancel
+  cancel,
+  setOnSpeechCompleted,
+  allowUserInteraction
 } = useSpeechSynthesis();
 
 // TTS repetition interval
 let ttsInterval = null;
+
+// Auto-start speech control
+const autoStartEnabled = ref(false);
+const showAutoStartHint = ref(true);
 
 // Reactive data
 const timerText = ref('15:00');
@@ -104,9 +110,36 @@ const handleStepClick = (index) => {
     steps.value[index].completed = true;
     currentStepIndex.value = index;
     
+    // Clear any existing interval before starting a new one
+    if (ttsInterval) {
+      clearInterval(ttsInterval);
+      ttsInterval = null;
+    }
+    
     // Speak the step when marked as done
     if (isSupported.value) {
       speakText(`Completed ${steps.value[index].label}`);
+    }
+    
+    // If there's a next step, announce it after the completion message and set up repeat
+    if (index < steps.value.length - 1 && isSupported.value) {
+      setTimeout(() => {
+        speakText(`Next: ${steps.value[index + 1].label}`);
+        
+        // Set up interval to repeat the next step every 5 seconds until completed
+        const nextIndex = index + 1;
+        ttsInterval = setInterval(() => {
+          if (currentStepIndex.value === index && !steps.value[nextIndex].completed && isSupported.value) {
+            speakText(steps.value[nextIndex].label);
+          } else {
+            // Clear interval if step is completed or we've moved away
+            if (ttsInterval) {
+              clearInterval(ttsInterval);
+              ttsInterval = null;
+            }
+          }
+        }, 5000); // Repeat every 5 seconds
+      }, 2000); // Wait 2 seconds after the step completion speech
     }
     
     // Check if this was the last step and ask if still bleeding
@@ -253,6 +286,38 @@ const progressText = computed(() => {
   return `Step ${nextStep} of ${totalSteps}${completedCount > 0 ? ' — ${completedCount} completed' : ''}`;
 });
 
+// Auto-start speech when user enables it
+const autoStartSpeech = () => {
+  allowUserInteraction(); // Enable speech synthesis
+  autoStartEnabled.value = true;
+  showAutoStartHint.value = false;
+  
+  if (isSupported.value && steps.value.length > 0) {
+    // Clear any existing interval before starting a new one
+    if (ttsInterval) {
+      clearInterval(ttsInterval);
+      ttsInterval = null;
+    }
+    
+    // Speak the first step
+    const firstStepLabel = steps.value[0].label;
+    speakText(`Start with ${firstStepLabel}`);
+    
+    // Set up interval to repeat the first step every 5 seconds until completed
+    ttsInterval = setInterval(() => {
+      if (currentStepIndex.value === -1 && !steps.value[0].completed && isSupported.value) {
+        speakText(steps.value[0].label);
+      } else {
+        // Clear interval if step is completed or we've moved away
+        if (ttsInterval) {
+          clearInterval(ttsInterval);
+          ttsInterval = null;
+        }
+      }
+    }, 5000); // Repeat every 5 seconds
+  }
+};
+
 // Initialize on component mount
 onMounted(() => {
   // Ensure clean state on mount
@@ -262,45 +327,9 @@ onMounted(() => {
   
   startTimer();
 
-  // Start TTS for the first step on every page load, similar to how the timer restarts
-  if (isSupported.value && steps.value.length > 0) {
-    // Clear any existing interval first
-    if (ttsInterval) {
-      clearInterval(ttsInterval);
-      ttsInterval = null;
-    }
-
-    // Always start with the first step when page loads/refreshes, like the timer
-    const firstStepLabel = steps.value[0].label;
-
-    if (isSupported.value) {
-      // Cancel any ongoing speech first
-      if (isSpeaking.value) {
-        cancel();
-      }
-      
-      // Start speaking immediately
-      speak(firstStepLabel);
-
-      // Set up interval to repeat the current step until it's completed
-      ttsInterval = setInterval(() => {
-        // Determine which step should be announced based on current progress
-        let targetStepIndex = currentStepIndex.value + 1;
-        
-        if (targetStepIndex < steps.value.length && isSupported.value) {
-          // Cancel any ongoing speech first
-          if (isSpeaking.value) {
-            cancel();
-          }
-          // Speak the step that should be completed next
-          speak(steps.value[targetStepIndex].label);
-        } else {
-          // If we've completed all steps, clear the interval
-          clearInterval(ttsInterval);
-          ttsInterval = null;
-        }
-      }, 5000); // Repeat every 5 seconds
-    }
+  // Show hint to enable audio if supported
+  if (isSupported.value) {
+    showAutoStartHint.value = true;
   }
 });
 
@@ -329,10 +358,6 @@ onUnmounted(() => {
 // Function to speak text when UI elements appear or are interacted with
 const speakText = (text) => {
   if (isSupported.value) {
-    // Cancel any ongoing speech first
-    if (isSpeaking.value) {
-      cancel();
-    }
     speak(text);
   }
 };
@@ -400,6 +425,24 @@ const closeAndNavigate = () => {
             <p class="text-lg font-medium text-gray-600">Immediate Actions and Management Protocol</p>
         </section>
 
+        <!-- Auto-start Audio Hint -->
+        <div v-if="showAutoStartHint && isSupported" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a2 2 0 00-2 2v4a2 2 0 002 2h3.763l8.789 5.894A1 1 0 0018 17V3z" />
+                </svg>
+                <div>
+                    <p class="text-sm font-medium text-blue-800">Audio Guide Available</p>
+                    <p class="text-xs text-blue-700">Click below to start hearing the treatment steps</p>
+                </div>
+            </div>
+            <button 
+                @click="autoStartSpeech"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition">
+                Start Audio
+            </button>
+        </div>
+
         <!-- Bundle Start -->
         <section class="bg-white rounded-xl shadow-sm p-6 mb-8">
             <div class="flex justify-between items-center mb-4">
@@ -414,7 +457,18 @@ const closeAndNavigate = () => {
 
         <!-- Initial Actions -->
         <section class="bg-white rounded-xl shadow-sm p-6 mb-8">
-            <h3 class="text-lg font-semibold text-motivaid-dark mb-4">Initial Actions</h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-motivaid-dark">Initial Actions</h3>
+                <!-- Audio playing indicator -->
+                <div v-if="isSpeaking" class="flex items-center space-x-2">
+                    <div class="flex space-x-1">
+                        <span class="h-2 w-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0s"></span>
+                        <span class="h-2 w-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                        <span class="h-2 w-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.4s"></span>
+                    </div>
+                    <span class="text-xs text-blue-600 font-medium">Now Speaking</span>
+                </div>
+            </div>
             <div class="space-y-4">
               <!-- Render each step -->
               <div v-for="(step, index) in steps" :key="index">

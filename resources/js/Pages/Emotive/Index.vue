@@ -23,11 +23,17 @@ const {
   isSupported, 
   isSpeaking, 
   speak, 
-  cancel 
+  cancel,
+  setOnSpeechCompleted,
+  allowUserInteraction
 } = useSpeechSynthesis();
 
 // TTS repetition interval
 let ttsInterval = null;
+
+// Auto-start speech control
+const autoStartEnabled = ref(false);
+const showAutoStartHint = ref(true);
 
 // Nigeria time
 const nigeriaTime = ref('');
@@ -127,6 +133,43 @@ const recordStepCompletion = (stepIndex) => {
   });
 };
 
+// Helper function to speak and repeat a step
+const speakStepContent = (stepIndex) => {
+  if (!isSupported.value || stepIndex >= allItems.value.length) return;
+
+  const item = allItems.value[stepIndex];
+  const textToSpeak = `${item.title}. ${item.description ? item.description : ''}`;
+  
+  // Clear any existing interval to prevent duplicates
+  if (ttsInterval) {
+    clearInterval(ttsInterval);
+    ttsInterval = null;
+  }
+
+  // Set up callback to repeat speech when it finishes
+  const repeatSpeech = () => {
+    if (currentIndex.value === stepIndex && isSupported.value) {
+      // Schedule the next speech to start after a 2-second delay
+      setTimeout(() => {
+        if (currentIndex.value === stepIndex && isSupported.value) {
+          speak(textToSpeak);
+        }
+      }, 2000);
+    }
+  };
+
+  setOnSpeechCompleted(repeatSpeech);
+  speak(textToSpeak);
+};
+
+// Auto-start speech when user enables it
+const autoStartSpeech = () => {
+  allowUserInteraction(); // Enable speech synthesis
+  autoStartEnabled.value = true;
+  showAutoStartHint.value = false;
+  speakStepContent(0);
+};
+
 // Next button handler for checklist
 const handleNextClick = () => {
   if (!nextBtnEnabled.value) return;
@@ -150,41 +193,7 @@ const handleNextClick = () => {
     allItems.value[currentIndex.value].visible = true;
     
     // Start TTS for the newly visible step
-    if (isSupported.value) {
-      const item = allItems.value[currentIndex.value];
-      const textToSpeak = `${item.title}. ${item.description ? item.description : ''}`;
-      
-      // Cancel any ongoing speech first
-      if (isSpeaking.value) {
-        cancel();
-      }
-      speak(textToSpeak);
-      
-      // Clear any existing interval before setting a new one to prevent memory leaks
-      if (ttsInterval) {
-        clearInterval(ttsInterval);
-        ttsInterval = null;
-      }
-      
-      // Set up interval to repeat the speech for this step
-      const currentStepIndex = currentIndex.value; // Capture the current step index to compare against
-      ttsInterval = setInterval(() => {
-        if (currentIndex.value === currentStepIndex && isSupported.value) { // Only repeat if this is still the current step
-          // Speak again after a short delay, canceling any previous speech first
-          setTimeout(() => {
-            if (currentIndex.value === currentStepIndex && isSupported.value) {
-              speak(textToSpeak);
-            }
-          }, 100);
-        } else {
-          // If we've moved to a different step, clear the interval
-          if (ttsInterval) {
-            clearInterval(ttsInterval);
-            ttsInterval = null;
-          }
-        }
-      }, 2000); // Repeat every 2 seconds
-    }
+    speakStepContent(currentIndex.value);
     
     // Update button state based on current item's checkbox
     updateNextState();
@@ -244,36 +253,9 @@ onMounted(() => {
   // Initialize checklist
   initializeChecklist();
   
-  // Start TTS for the first visible item
+  // Show hint to enable audio if supported
   if (isSupported.value && allItems.value.length > 0) {
-    const firstItem = allItems.value[0];
-    const textToSpeak = `${firstItem.title}. ${firstItem.description ? firstItem.description : ''}`;
-    
-    // Wait a moment to ensure UI is ready before starting speech
-    setTimeout(() => {
-      if (isSupported.value) {
-        speak(textToSpeak);
-        
-        // Set up interval to repeat the speech for this step
-        const currentStepIndex = 0; // Store the initial index to compare against
-        ttsInterval = setInterval(() => {
-          if (currentIndex.value === currentStepIndex && isSupported.value) { // Only repeat if this is still the current step
-            // Cancel any ongoing speech first
-            if (isSpeaking.value) {
-              cancel();
-            }
-            // Speak again after a short delay
-            setTimeout(() => {
-              speak(textToSpeak);
-            }, 100);
-          } else {
-            // If we've moved to a different step, clear the interval
-            clearInterval(ttsInterval);
-            ttsInterval = null;
-          }
-        }, 2000); // Repeat every 2 seconds
-      }
-    }, 500);
+    showAutoStartHint.value = true;
   }
 });
 
@@ -359,7 +341,23 @@ onUnmounted(() => {
             <p class="text-motivaid-teal/90 font-medium">(Delivery Mode)</p>
         </section>
 
-        <!-- Timer and Estimate Card -->
+        <!-- Auto-start Audio Hint -->
+        <div v-if="showAutoStartHint && isSupported" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a2 2 0 00-2 2v4a2 2 0 002 2h3.763l8.789 5.894A1 1 0 0018 17V3z" />
+                </svg>
+                <div>
+                    <p class="text-sm font-medium text-blue-800">Audio Guide Available</p>
+                    <p class="text-xs text-blue-700">Click below to start hearing the step-by-step instructions</p>
+                </div>
+            </div>
+            <button 
+                @click="autoStartSpeech"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition">
+                Start Audio
+            </button>
+        </div>
         <section class="bg-white rounded-lg shadow-sm p-4 mb-4">
             <h3 class="text-sm font-medium text-gray-700 mb-2">Live Timer</h3>
             <div class="flex justify-between items-center text-lg font-semibold">
@@ -390,7 +388,18 @@ onUnmounted(() => {
 
         <!-- Checklist Card (show one item at a time with Next button) -->
         <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h3 class="text-lg font-medium text-gray-700 mb-4">E-MOTIVE Step Checklist</h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-700">E-MOTIVE Step Checklist</h3>
+                <!-- Audio playing indicator -->
+                <div v-if="isSpeaking" class="flex items-center space-x-2">
+                    <div class="flex space-x-1">
+                        <span class="h-2 w-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0s"></span>
+                        <span class="h-2 w-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                        <span class="h-2 w-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.4s"></span>
+                    </div>
+                    <span class="text-xs text-blue-600 font-medium">Now Speaking</span>
+                </div>
+            </div>
             <ul class="space-y-3">
             <li v-for="(item, index) in allItems" :key="item.id" 
                 v-show="item.visible" 

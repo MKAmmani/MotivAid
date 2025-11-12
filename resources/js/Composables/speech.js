@@ -13,6 +13,7 @@ export function useSpeechSynthesis() {
     let currentUtterance = null; // Store reference to current utterance to prevent conflicts
     let isProcessing = false; // Flag to prevent race conditions
     let queuedSpeech = null; // Queue to handle back-to-back speech requests
+    let onSpeechCompleted = null; // Callback when speech finishes
 
     onMounted(() => {
         isSupported.value = "speechSynthesis" in window;
@@ -24,12 +25,17 @@ export function useSpeechSynthesis() {
         loadVoices();
         window.speechSynthesis.onvoiceschanged = loadVoices;
 
-        // Detect first user click to unlock audio
-        document.addEventListener(
-            "click",
-            () => (userInteracted.value = true),
-            { once: true }
-        );
+        // Detect first user interaction to unlock audio (click, touch, keyboard, etc.)
+        const enableAudio = () => {
+            userInteracted.value = true;
+            document.removeEventListener("click", enableAudio);
+            document.removeEventListener("touchstart", enableAudio);
+            document.removeEventListener("keydown", enableAudio);
+        };
+
+        document.addEventListener("click", enableAudio, { once: true });
+        document.addEventListener("touchstart", enableAudio, { once: true });
+        document.addEventListener("keydown", enableAudio, { once: true });
     });
 
     const loadVoices = () => {
@@ -66,12 +72,7 @@ export function useSpeechSynthesis() {
         // Mark as processing to prevent race conditions
         isProcessing = true;
 
-        // Cancel any ongoing speech before starting new one to prevent interruptions
-        if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
-        }
-
-        // Create new utterance
+        // Create new utterance (don't cancel the old one - let it finish or end gracefully)
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.voice = customOptions.voice || currentVoice.value;
         utterance.rate = customOptions.rate || speechRate.value;
@@ -94,17 +95,28 @@ export function useSpeechSynthesis() {
             if (currentUtterance === utterance) {
                 currentUtterance = null;
             }
+            // Call the completion callback if set
+            if (onSpeechCompleted) {
+                onSpeechCompleted();
+            }
             // Process any queued speech
             processNextInQueue();
         };
 
         utterance.onerror = (e) => {
-            console.error("Speech error:", e.error);
+            // Only log real errors, not "interrupted" which is expected
+            if (e.error !== "interrupted") {
+                console.error("Speech error:", e.error);
+            }
             isSpeaking.value = false;
             isProcessing = false;
             // Clear the reference when error occurs
             if (currentUtterance === utterance) {
                 currentUtterance = null;
+            }
+            // Call the completion callback even on error
+            if (onSpeechCompleted) {
+                onSpeechCompleted();
             }
             // Process any queued speech
             processNextInQueue();
@@ -144,6 +156,14 @@ export function useSpeechSynthesis() {
         if (v) currentVoice.value = v;
     };
 
+    const setOnSpeechCompleted = (callback) => {
+        onSpeechCompleted = callback;
+    };
+
+    const allowUserInteraction = () => {
+        userInteracted.value = true;
+    };
+
     return {
         isSupported,
         isSpeaking,
@@ -160,5 +180,7 @@ export function useSpeechSynthesis() {
         cancel,
         loadVoices,
         setVoiceByLang,
+        setOnSpeechCompleted,
+        allowUserInteraction,
     };
 }

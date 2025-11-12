@@ -10,22 +10,24 @@ const {
   isSupported,
   isSpeaking,
   speak,
-  cancel
+  cancel,
+  setOnSpeechCompleted,
+  allowUserInteraction
 } = useSpeechSynthesis();
 
 // Function to speak text when UI elements appear or are interacted with
 const speakText = (text) => {
   if (isSupported.value) {
-    // Cancel any ongoing speech first
-    if (isSpeaking.value) {
-      cancel();
-    }
     speak(text);
   }
 };
 
 // Reactive data
 const timeString = ref('Date:');
+
+// Auto-start speech control
+const autoStartEnabled = ref(false);
+const showAutoStartHint = ref(true);
 
 // State for the diagnostic process
 const currentStep = ref(1);
@@ -212,6 +214,13 @@ const handleThrombinYes = () => {
   
   currentStep.value = 4;
   showDoneButton.value = false;
+  
+  // Speak the follow-up instruction after a short delay
+  if (isSupported.value) {
+    setTimeout(() => {
+      speakText("Follow these steps. Seek advanced care.");
+    }, 300);
+  }
 };
 
 const handleThrombinNo = () => {
@@ -228,6 +237,13 @@ const handleThrombinNo = () => {
   
   currentStep.value = 4;
   showDoneButton.value = false;
+  
+  // Speak the follow-up instructions for No path after a short delay
+  if (isSupported.value) {
+    setTimeout(() => {
+      speakText("Follow these steps. Continue care. Monitor bleeding. Check vital signs and tone. Encourage breastfeeding.");
+    }, 300);
+  }
 };
 
 // Watch for changes in thrombin checkboxes
@@ -237,31 +253,45 @@ const checkThrombinAllChecked = () => {
   // Check which group is active and speak appropriate completion message
   if (showThrombinYesGroup.value && areAllCheckboxesChecked([thrombinYesAdvance])) {
     if (isSupported.value) {
-      speakText("Diagnostic steps completed successfully. Continue to treatment.");
+      setTimeout(() => {
+        speakText("Diagnostic steps completed successfully. Continue to treatment.");
+      }, 300);
     }
   } else if (showThrombinNoGroup.value && areAllCheckboxesChecked([thrombinNoContinue, thrombinNoMonitor, thrombinNoVitals, thrombinNoBf])) {
     if (isSupported.value) {
-      speakText("Diagnostic steps completed successfully. Continue to treatment.");
+      setTimeout(() => {
+        speakText("Diagnostic steps completed successfully. Continue to treatment.");
+      }, 300);
     }
   }
   
   // Speak individual checkbox selections for Thrombin Yes group
   if (thrombinYesAdvance.value && showThrombinYesGroup.value && isSupported.value) {
-    speakText("Seeking advanced care checked");
+    setTimeout(() => {
+      speakText("Seeking advanced care checked");
+    }, 300);
   }
   
   // Speak individual checkbox selections for Thrombin No group
   if (thrombinNoContinue.value && showThrombinNoGroup.value && isSupported.value) {
-    speakText("Continuing care checked");
+    setTimeout(() => {
+      speakText("Continuing care checked");
+    }, 300);
   }
   if (thrombinNoMonitor.value && showThrombinNoGroup.value && isSupported.value) {
-    speakText("Monitoring bleeding checked");
+    setTimeout(() => {
+      speakText("Monitoring bleeding checked");
+    }, 300);
   }
   if (thrombinNoVitals.value && showThrombinNoGroup.value && isSupported.value) {
-    speakText("Checking vital signs and tone checked");
+    setTimeout(() => {
+      speakText("Checking vital signs and tone checked");
+    }, 300);
   }
   if (thrombinNoBf.value && showThrombinNoGroup.value && isSupported.value) {
-    speakText("Encouraging breastfeeding checked");
+    setTimeout(() => {
+      speakText("Encouraging breastfeeding checked");
+    }, 300);
   }
 };
 
@@ -286,23 +316,29 @@ const closeAndNavigate = () => {
   }
 };
 
+// Auto-start speech when user enables it
+const autoStartSpeech = () => {
+  allowUserInteraction(); // Enable speech synthesis
+  autoStartEnabled.value = true;
+  showAutoStartHint.value = false;
+  
+  if (isSupported.value) {
+    // Speak the main title and description
+    speakText("Bleeding After Birth. Steps For Diagnostic. Estimated blood loss greater than 500 mL.");
+    
+    // Then introduce the first step after a delay
+    setTimeout(() => speakText("Step 1: TONICITY, Select YES or NO"), 2000);
+  }
+};
+
 onMounted(() => {
   // Start updating time immediately
   updateTime();
   timeInterval = setInterval(updateTime, 1000);
   
-  // Speak initial page elements when component loads
+  // Show hint to enable audio if supported
   if (isSupported.value) {
-    // Cancel any ongoing speech first
-    if (isSpeaking.value) {
-      cancel();
-    }
-    
-    // Speak the main title and description as a single phrase
-    speakText("Bleeding After Birth. Steps For Diagnostic. Estimated blood loss greater than 500 mL.");
-    
-    // Then introduce the first step 
-    setTimeout(() => speakText("Step 1: TONICITY, Select YES or NO"), 2000);
+    showAutoStartHint.value = true;
   }
 });
 
@@ -361,9 +397,38 @@ onUnmounted(() => {
             <p class="text-lg font-medium text-gray-600">Steps For Diagnostic</p>
         </section>
 
+        <!-- Auto-start Audio Hint -->
+        <div v-if="showAutoStartHint && isSupported" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a2 2 0 00-2 2v4a2 2 0 002 2h3.763l8.789 5.894A1 1 0 0018 17V3z" />
+                </svg>
+                <div>
+                    <p class="text-sm font-medium text-blue-800">Audio Guide Available</p>
+                    <p class="text-xs text-blue-700">Click below to start hearing the diagnostic steps</p>
+                </div>
+            </div>
+            <button 
+                @click="autoStartSpeech"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition">
+                Start Audio
+            </button>
+        </div>
+
         <!-- Assess & Record Section -->
         <section class="bg-white rounded-xl shadow-sm p-8 mb-8">
-            <h3 class="text-xl font-semibold text-motivaid-dark mb-6 text-red-500">Estimated blood loss greater than 500 mL</h3>
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold text-motivaid-dark text-red-500">Estimated blood loss greater than 500 mL</h3>
+                <!-- Audio playing indicator -->
+                <div v-if="isSpeaking" class="flex items-center space-x-2">
+                    <div class="flex space-x-1">
+                        <span class="h-2 w-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0s"></span>
+                        <span class="h-2 w-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                        <span class="h-2 w-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.4s"></span>
+                    </div>
+                    <span class="text-xs text-blue-600 font-medium">Now Speaking</span>
+                </div>
+            </div>
             
             <!-- Step 1: Tonicity -->
             <div class="mb-8" v-if="currentStep >= 1">
