@@ -91,24 +91,35 @@ const getPageNumbers = () => {
 
 </script>
 <template>
-  <div class="min-h-screen flex flex-col bg-gray-50">
+  <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-            <div class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200">
-                <img src="/images/motivaid_logo.jpg" alt="MotivAid Logo" class="w-8 h-8 object-contain rounded-full">
+    <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <div class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200">
+                    <img src="/images/motivaid_logo.jpg" alt="MotivAid Logo" class="w-10 h-10 object-contain rounded-full">
+                </div>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-motivaid-pink to-hotpink-800 bg-clip-text text-transparent">MotivAid</h1>
             </div>
-            <span class="text-xl font-bold text-motivaid-teal">MotivAid</span>
+            
+            <div class="hidden md:flex items-center space-x-2 text-sm text-gray-500">
+                <span class="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">Documentation</span>
+                <span class="text-gray-400">/</span>
+                <span class="text-gray-600 font-medium">Patient Records</span>
+            </div>
         </div>
 
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-6">
             <!-- User dropdown -->
             <div class="relative">
                 <Dropdown align="right" width="48">
                     <template #trigger>
-                        <button type="button" class="flex items-center text-sm text-gray-500 hover:text-gray-700 focus:outline-none">
+                        <button type="button" class="flex items-center space-x-2 text-sm text-gray-700 hover:text-motivaid-pink focus:outline-none transition-colors">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <span class="font-medium text-gray-700">{{ $page.props.auth.user.name.charAt(0) }}</span>
+                            </div>
                             <span>{{ $page.props.auth.user.name }}</span>
-                            <svg class="ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <svg class="ml-1 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
                         </button>
@@ -125,35 +136,41 @@ const getPageNumbers = () => {
                 </Dropdown>
             </div>
 
-            <div class="text-sm text-gray-500">{{ realtimeClock }}</div>
+            <div class="flex items-center space-x-2 text-sm">
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div class="text-gray-600 font-medium">{{ realtimeClock }}</div>
+            </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto px-4 py-6">
+    <main class="max-w-7xl mx-auto px-6 py-8 w-full">
         <!-- Title Section -->
-        <section class="bg-motivaid-teal text-white px-6 py-8 rounded-lg mb-6">
-            <h2 class="text-2xl font-semibold mb-2">Documentation</h2>
-            <p class="text-motivaid-teal/90 font-medium">Patients Treated by You</p>
+        <section class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-8 py-10 rounded-2xl shadow-lg mb-8">
+            <h2 class="text-3xl font-bold mb-2">Patient Documentation</h2>
+            <p class="text-white/90 font-medium">A Comprehensive Record of Patients Treated by You</p>
         </section>
 
         <!-- Patient List -->
-        <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h3 class="text-lg font-medium text-gray-700 mb-4">Your Patients</h3>
+        <section class="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+            <h3 class="text-xl font-semibold text-gray-800 mb-6">Your Patients</h3>
             
             <div v-if="patients.length > 0" class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hospital</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Patient Name</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Age</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Hospital</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Created Date</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <tr v-for="patient in patients" :key="patient.id">
+                        <tr v-for="patient in patients" :key="patient.id" class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ patient.name }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ patient.age }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ patient.hospital }}</td>
@@ -161,7 +178,7 @@ const getPageNumbers = () => {
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                 <Link 
                                     :href="route('emotive.steps.patient', { patientId: patient.id })"
-                                    class="text-motivaid-teal hover:text-teal-700 font-medium"
+                                    class="text-motivaid-pink hover:text-hotpink-800 font-medium transition-colors"
                                 >
                                     View Summary
                                 </Link>
@@ -171,7 +188,7 @@ const getPageNumbers = () => {
                 </table>
                 
                 <!-- Pagination Controls -->
-                <div class="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 mt-4">
+                <div v-if="meta.last_page > 1" class="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 mt-6">
                     <div class="flex flex-1 justify-between sm:hidden">
                         <button
                             @click="goToPrevPage"
@@ -220,9 +237,9 @@ const getPageNumbers = () => {
                                     @click="goToPage(page)"
                                     :class="[
                                         meta.current_page === page
-                                            ? 'z-10 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600'
+                                            ? 'z-10 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-motivaid-pink'
                                             : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50',
-                                        'relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
+                                        'relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20'
                                     ]"
                                 >
                                     {{ page }}
@@ -244,14 +261,22 @@ const getPageNumbers = () => {
                 </div>
             </div>
             
-            <div v-else class="text-center py-8">
-                <p class="text-gray-500">No patients found. You haven't treated any patients yet.</p>
+            <div v-else class="text-center py-12">
+                 <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                </svg>
+                <p class="text-gray-500 text-sm">No patients found. You haven't treated any patients yet.</p>
             </div>
         </section>
     </main>
 
-    <div class="mt-8 text-center text-gray-400 text-sm">
-        &copy; 2025 MotivAid. All rights reserved.
-    </div>
+    <footer class="py-8 text-center text-gray-500 text-sm">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="border-t border-gray-200 pt-8">
+                <p>&copy; {{ new Date().getFullYear() }} MotivAid. All rights reserved.</p>
+                <p class="mt-2 text-gray-400">Advanced Healthcare Management System</p>
+            </div>
+        </div>
+    </footer>
   </div>
 </template>

@@ -81,7 +81,7 @@ const hasSteps = computed(() => {
 
 // Computed property to calculate time difference and determine performance
 const timePerformance = computed(() => {
-  if (!emotiveSteps.value || emotiveSteps.value.length === 0) {
+  if (!emotiveSteps.value || emotiveSteps.value.length < 2) {
     return null;
   }
 
@@ -113,6 +113,33 @@ const timePerformance = computed(() => {
   };
 });
 
+// Computed property to format patient information for display
+const displayedPatientInfo = computed(() => {
+  if (!props.patient) {
+    return {};
+  }
+
+  // Helper to capitalize first letter if it's a string
+  const capitalizeString = (str) => {
+    if (typeof str === 'string' && str.length > 0) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+    return str;
+  };
+
+  return {
+    'Name': props.patient.name,
+    'Age': props.patient.age,
+    'History of Antenatal Visit': capitalizeString(props.patient.history_of_antenatal_visit),
+    'Gravida/Parity': props.patient.gravida,
+    'History of Previous PPH': capitalizeString(props.patient.history_of_previous_pph),
+    'History of Caesarean Section': capitalizeString(props.patient.history_Of_ceaserian_section),
+    'Type of Pregnancy': capitalizeString(props.patient.type_of_pregenency),
+    'Gestational Age': props.patient.gestational_age,
+    'Hospital': props.patient.hospital,
+  };
+});
+
 // Modal state
 const showAddPatientModal = ref(false);
 
@@ -128,13 +155,12 @@ const closeModal = () => {
 
 //redirect to patient list after adding another patient
 const redirectToPatientList = () => {
-      // window.location.href = route('patient.index');
     router.visit(route('patient.index'));
 };
 </script>
 
 <template>
-    <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div class="min-h-screen bg-gray-50">
         <!-- Header -->
         <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-4">
@@ -142,7 +168,7 @@ const redirectToPatientList = () => {
                     <div class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200">
                         <img src="/images/motivaid_logo.jpg" alt="MotivAid Logo" class="w-10 h-10 object-contain rounded-full">
                     </div>
-                    <h1 class="text-2xl font-bold bg-gradient-to-r from-motivaid-pink to-hotpink-800 bg-clip-text text-transparent">MotivAid</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">MotivAid</h1>
                 </div>
                 
                 <div class="hidden md:flex items-center space-x-2 text-sm text-gray-500">
@@ -197,7 +223,7 @@ const redirectToPatientList = () => {
                     <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-3xl font-bold mb-2">Case Summary</h2>
-                            <p class="text-motivaid-pink/90 font-medium">Patient Motive Steps Completion</p>
+                            <p class="text-motivaid-pink-light font-medium">Patient Motive Steps Completion</p>
                         </div>
                         <div class="hidden md:block">
                             <div class="bg-white/20 backdrop-blur-sm rounded-xl p-4">
@@ -211,179 +237,138 @@ const redirectToPatientList = () => {
                 </div>
             </section>
 
-            <!-- Patient Information Section -->
-            <section v-if="props.patient" class="bg-white rounded-2xl shadow-sm p-8 mb-8 border border-gray-100">
-                <div class="flex items-center mb-6">
-                    <div class="w-10 h-10 rounded-full bg-motivaid-pink/10 flex items-center justify-center mr-3">
-                        <svg class="w-5 h-5 text-motivaid-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800">Patient Information</h3>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="space-y-1">
-                        <p class="text-sm text-gray-500">Name</p>
-                        <p class="text-base font-medium text-gray-900">{{ props.patient.name }}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-sm text-gray-500">Age</p>
-                        <p class="text-base font-medium text-gray-900">{{ props.patient.age }}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-sm text-gray-500">History of Antenatal Visit</p>
-                        <p class="text-base font-medium text-gray-900 capitalize">{{ props.patient.history_of_antenatal_visit }}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-sm text-gray-500">Gravida/Parity</p>
-                        <p class="text-base font-medium text-gray-900">{{ props.patient.gravida }}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-sm text-gray-500">History of Previous PPH</p>
-                        <p class="text-base font-medium text-gray-900 capitalize">{{ props.patient.history_of_previous_pph }}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-sm text-gray-500">History of Caesarean Section</p>
-                        <p class="text-base font-medium text-gray-900 capitalize">{{ props.patient.history_Of_ceaserian_section }}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-sm text-gray-500">Type of Pregnancy</p>
-                        <p class="text-base font-medium text-gray-900 capitalize">{{ props.patient.type_of_pregenency }}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-sm text-gray-500">Gestational Age</p>
-                        <p class="text-base font-medium text-gray-900">{{ props.patient.gestational_age }}</p>
-                    </div>
-                    <div class="space-y-1 md:col-span-3">
-                        <p class="text-sm text-gray-500">Hospital</p>
-                        <p class="text-base font-medium text-gray-900">{{ props.patient.hospital }}</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Alert Banner -->
-            <section class="bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 rounded-2xl p-6 mb-8 shadow-sm">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                            <svg class="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column -->
+                <div class="lg:col-span-1 space-y-8">
+                    <!-- Patient Information Section -->
+                    <section v-if="props.patient" class="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+                        <div class="flex items-center mb-6">
+                            <div class="w-10 h-10 rounded-full bg-motivaid-pink/10 flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5 text-motivaid-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Patient Information</h3>
                         </div>
-                    </div>
-                    <div class="ml-4">
-                        <h4 class="text-lg font-semibold text-red-800">Case Summary</h4>
-                        <p class="text-red-700 mt-1">Patient Motive Steps</p>
-                    </div>
-                </div>
-            </section>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                            <div v-for="(value, label) in displayedPatientInfo" :key="label" class="space-y-1">
+                                <p class="text-sm text-gray-500">{{ label }}</p>
+                                <p class="text-base font-medium text-gray-900">{{ value }}</p>
+                            </div>
+                        </div>
+                    </section>
 
-            <!-- Case Summary Table -->
-            <section class="bg-white rounded-2xl shadow-sm p-8 mb-8 border border-gray-100">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-semibold text-gray-800 flex items-center">
-                        <span class="w-10 h-10 rounded-full bg-motivaid-pink/10 flex items-center justify-center mr-3">
-                            <svg class="w-5 h-5 text-motivaid-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                            </svg>
-                        </span>
-                        Case Summary
-                    </h3>
-                    <div class="text-sm text-gray-500">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <svg class="mr-1.5 h-2 w-2 text-green-600" fill="currentColor" viewBox="0 0 8 8">
-                                <circle cx="4" cy="4" r="3" />
-                            </svg>
-                            {{ emotiveSteps.length }} Steps Complete
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="overflow-x-auto rounded-lg border border-gray-200">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Action</th>
-                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Time</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="step in emotiveSteps" :key="step.id" class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ step.action }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        <svg class="mr-1.5 h-2 w-2 text-green-600" fill="currentColor" viewBox="0 0 8 8">
-                                            <circle cx="4" cy="4" r="3" />
+                    <!-- Time Performance Message -->
+                    <section v-if="hasSteps && timePerformance">
+                        <div v-if="timePerformance.withinTimeLimit" class="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-2xl p-6 shadow-sm">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                        <svg class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                         </svg>
-                                        Done
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ new Date(step.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</td>
-                            </tr>
-                            <tr v-if="!hasSteps">
-                                <td colspan="3" class="px-6 py-12 text-center">
-                                    <div class="flex flex-col items-center justify-center">
-                                        <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                                        </svg>
-                                        <p class="text-sm text-gray-500">No steps recorded yet</p>
                                     </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Time Performance Message -->
-            <section v-if="hasSteps && timePerformance" class="mb-8">
-                <div v-if="timePerformance.withinTimeLimit" class="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-2xl p-6 shadow-sm">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0">
-                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                                <svg class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-lg font-semibold text-green-800">Performance Summary</h4>
+                                    <p class="text-green-700 mt-1">{{ timePerformance.message }}</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="ml-4">
-                            <h4 class="text-lg font-semibold text-green-800">Performance Summary</h4>
-                            <p class="text-green-700 mt-1">{{ timePerformance.message }}</p>
-                        </div>
-                    </div>
-                </div>
-                <div v-else class="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-2xl p-6 shadow-sm">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0">
-                            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                                <svg class="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                </svg>
+                        <div v-else class="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-2xl p-6 shadow-sm">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                        <svg class="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="text-lg font-semibold text-red-800">Performance Summary</h4>
+                                    <p class="text-red-700 mt-1">{{ timePerformance.message }}</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="ml-4">
-                            <h4 class="text-lg font-semibold text-red-800">Performance Summary</h4>
-                            <p class="text-red-700 mt-1">{{ timePerformance.message }}</p>
+                    </section>
+                </div>
+
+                <!-- Right Column -->
+                <div class="lg:col-span-2 space-y-8">
+                    <!-- Case Summary Table -->
+                    <section class="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-semibold text-gray-800 flex items-center">
+                                <span class="w-10 h-10 rounded-full bg-motivaid-pink/10 flex items-center justify-center mr-3">
+                                    <svg class="w-5 h-5 text-motivaid-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                    </svg>
+                                </span>
+                                Case Summary
+                            </h3>
+                            <div class="text-sm text-gray-500">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <svg class="mr-1.5 h-2 w-2 text-green-600" fill="currentColor" viewBox="0 0 8 8">
+                                        <circle cx="4" cy="4" r="3" />
+                                    </svg>
+                                    {{ emotiveSteps.length }} Steps Complete
+                                </span>
+                            </div>
                         </div>
+                        
+                        <div class="overflow-x-auto rounded-lg border border-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Action</th>
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr v-for="step in emotiveSteps" :key="step.id" class="hover:bg-gray-50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ step.action }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                <svg class="mr-1.5 h-2 w-2 text-green-600" fill="currentColor" viewBox="0 0 8 8">
+                                                    <circle cx="4" cy="4" r="3" />
+                                                </svg>
+                                                Done
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ new Date(step.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</td>
+                                    </tr>
+                                    <tr v-if="!hasSteps">
+                                        <td colspan="3" class="px-6 py-12 text-center">
+                                            <div class="flex flex-col items-center justify-center">
+                                                <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                                                </svg>
+                                                <p class="text-sm text-gray-500">No steps recorded yet</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Action Button -->
+                    <div class="flex justify-end">
+                        <button 
+                            class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white font-semibold px-6 py-3 rounded-xl hover:from-motivaid-pink hover:to-motivaid-pink shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2"
+                            @click="handleDoneClick"
+                        >
+                            <span class="flex items-center">
+                                <svg class="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Complete Summary
+                            </span>
+                        </button>
                     </div>
                 </div>
-            </section>
-
-            <!-- Action Button -->
-            <div class="flex justify-end">
-                <button 
-                    class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white font-semibold px-6 py-3 rounded-xl hover:from-motivaid-pink hover:to-motivaid-pink shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2"
-                    @click="handleDoneClick"
-                >
-                    <span class="flex items-center">
-                        <svg class="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Complete Summary
-                    </span>
-                </button>
             </div>
         </main>
 
