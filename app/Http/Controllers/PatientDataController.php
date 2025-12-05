@@ -13,7 +13,7 @@ class PatientDataController extends Controller
      * Display a listing of the Emotiv activities.
      */
     public function index()
-    {   
+    {
         return Inertia('Patient/Create');
     }
 
@@ -33,9 +33,9 @@ class PatientDataController extends Controller
             'gestational_age' => 'required|string|max:255',
             // Remove hospital validation since it's automatically set from the authenticated user
         ]);
-        
+
         $validatedData['user_id'] = auth()->id();
-        
+
         // Automatically set hospital to the authenticated user's hospital
         $user = auth()->user();
         $validatedData['hospital'] = $user->hospital ? $user->hospital->name : 'No Hospital Assigned';

@@ -40,6 +40,16 @@ const showThrombinNoGroup = ref(false);
 const showDoneButton = ref(false);
 const showCompletionPopup = ref(false);
 
+// Button click states for disabling
+const tonicityYesClicked = ref(false);
+const tonicityNoClicked = ref(false);
+const tissueYesClicked = ref(false);
+const tissueNoClicked = ref(false);
+const tearYesClicked = ref(false);
+const tearNoClicked = ref(false);
+const thrombinYesClicked = ref(false);
+const thrombinNoClicked = ref(false);
+
 // Checkbox states
 const tonicityMassage = ref(false);
 const tonicityEmpty = ref(false);
@@ -93,6 +103,8 @@ const updateThrombinDoneButton = () => {
 
 // Step 1: Tonicity handlers
 const handleTonicityYes = () => {
+  tonicityYesClicked.value = true;
+  tonicityNoClicked.value = false;
   showTonicityFollowup.value = false;
   currentStep.value = 2;
   
@@ -102,6 +114,8 @@ const handleTonicityYes = () => {
 };
 
 const handleTonicityNo = () => {
+  tonicityNoClicked.value = true;
+  tonicityYesClicked.value = false;
   showTonicityFollowup.value = true;
   currentStep.value = 1;
   
@@ -131,6 +145,8 @@ const checkTonicityAllChecked = () => {
 
 // Step 2: Tissue handlers
 const handleTissueYes = () => {
+  tissueYesClicked.value = true;
+  tissueNoClicked.value = false;
   showTissueFollowup.value = true;
   currentStep.value = 2;
   
@@ -140,6 +156,8 @@ const handleTissueYes = () => {
 };
 
 const handleTissueNo = () => {
+  tissueNoClicked.value = true;
+  tissueYesClicked.value = false;
   showTissueFollowup.value = false;
   currentStep.value = 3;
   
@@ -166,6 +184,8 @@ const checkTissueAllChecked = () => {
 
 // Step 3: Tear handlers
 const handleTearYes = () => {
+  tearYesClicked.value = true;
+  tearNoClicked.value = false;
   showTearFollowup.value = true;
   currentStep.value = 3;
   
@@ -175,6 +195,8 @@ const handleTearYes = () => {
 };
 
 const handleTearNo = () => {
+  tearNoClicked.value = true;
+  tearYesClicked.value = false;
   showTearFollowup.value = false;
   currentStep.value = 4;
   
@@ -201,6 +223,8 @@ const checkTearAllChecked = () => {
 
 // Step 4: Thrombin handlers
 const handleThrombinYes = () => {
+  thrombinYesClicked.value = true;
+  thrombinNoClicked.value = false;
   showThrombinFollowup.value = true;
   showThrombinYesGroup.value = true;
   showThrombinNoGroup.value = false;
@@ -224,6 +248,8 @@ const handleThrombinYes = () => {
 };
 
 const handleThrombinNo = () => {
+  thrombinNoClicked.value = true;
+  thrombinYesClicked.value = false;
   showThrombinFollowup.value = true;
   showThrombinYesGroup.value = false;
   showThrombinNoGroup.value = true;
@@ -434,8 +460,8 @@ onUnmounted(() => {
             <div class="mb-8" v-if="currentStep >= 1">
                 <h4 class="text-lg font-medium text-gray-700 mb-4">Step 1: TONICITY</h4>
                 <div class="flex space-x-4">
-                    <button @click="handleTonicityYes" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition">YES</button>
-                    <button @click="handleTonicityNo" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition">NO</button>
+                    <button @click="handleTonicityYes" :disabled="tonicityYesClicked" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed">YES</button>
+                    <button @click="handleTonicityNo" :disabled="tonicityNoClicked" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed">NO</button>
                 </div>
 
                 <div v-if="showTonicityFollowup" class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
@@ -455,8 +481,8 @@ onUnmounted(() => {
             <div class="mb-8" v-if="currentStep >= 2">
                 <h4 class="text-lg font-medium text-gray-700 mb-4">Step 2: TISSUE</h4>
                 <div class="flex space-x-4">
-                    <button @click="handleTissueYes" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition">YES</button>
-                    <button @click="handleTissueNo" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition">NO</button>
+                    <button @click="handleTissueYes" :disabled="tissueYesClicked" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed">YES</button>
+                    <button @click="handleTissueNo" :disabled="tissueNoClicked" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed">NO</button>
                 </div>
                 <div v-if="showTissueFollowup" class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
                     <p class="font-semibold text-gray-800">Follow these steps</p>
@@ -471,8 +497,8 @@ onUnmounted(() => {
             <div class="mb-8" v-if="currentStep >= 3">
                 <h4 class="text-lg font-medium text-gray-700 mb-4">Step 3: TEAR</h4>
                 <div class="flex space-x-4">
-                    <button @click="handleTearYes" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition">YES</button>
-                    <button @click="handleTearNo" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition">NO</button>
+                    <button @click="handleTearYes" :disabled="tearYesClicked" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed">YES</button>
+                    <button @click="handleTearNo" :disabled="tearNoClicked" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed">NO</button>
                 </div>
                 <div v-if="showTearFollowup" class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
                     <p class="font-semibold text-gray-800">Follow these steps</p>
@@ -487,8 +513,8 @@ onUnmounted(() => {
             <div class="mb-8" v-if="currentStep >= 4">
                 <h4 class="text-lg font-medium text-gray-700 mb-4">Step 4: THROMBIN</h4>
                 <div class="flex space-x-4 mb-6">
-                    <button @click="handleThrombinYes" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none transition">YES</button>
-                    <button @click="handleThrombinNo" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none transition">NO</button>
+                    <button @click="handleThrombinYes" :disabled="thrombinYesClicked" class="flex-1 bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-3 px-6 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none transition disabled:opacity-50 disabled:cursor-not-allowed">YES</button>
+                    <button @click="handleThrombinNo" :disabled="thrombinNoClicked" class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none transition disabled:opacity-50 disabled:cursor-not-allowed">NO</button>
                 </div>
                 <div v-if="showThrombinFollowup" class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
                     <p class="font-semibold text-gray-800">Follow these steps</p>
@@ -517,8 +543,11 @@ onUnmounted(() => {
                 </div>
                 
             </div>
-            <div class="flex justify-center mt-4">
+            <div class="flex justify-center items-center mt-4 space-x-4">
                 <button v-if="showDoneButton" @click="handleDoneClick" class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white py-2 px-4 rounded-lg font-medium hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink focus:ring-offset-2 transition w-full max-w-xs">Done</button>
+                <Link :href="route('treatment.index')" class="inline-block bg-motivaid-teal text-white py-2 px-4 rounded-lg font-medium hover:bg-hotpink-800 focus:outline-none focus:ring-2 focus:ring-motivaid-teal transition w-full max-w-xs text-center">
+                    Continue to Treatment
+                </Link>
             </div>
         </section>
     </main>

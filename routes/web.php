@@ -39,10 +39,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('hospitals', \App\Http\Controllers\HospitalController::class);
 
     Route::get('/emotive', [EmotivController::class, 'index'])->name('emotive.index');
-    Route::get('/diagonestic/', [DiagonesticController::class, 'index'])->name('diagonestic.index');
-    Route::get('/treatment/', [TreatmentController::class, 'index'])->name('treatment.index');
+    Route::get('/diagonestic', [DiagonesticController::class, 'index'])->name('diagonestic.index');
+    Route::get('/treatment', [TreatmentController::class, 'index'])->name('treatment.index');
     Route::get('/documentation', [EmotivController::class, 'documentation'])->name('documentation.index');
-    
+
     // Emotive Step Routes
     Route::post('/emotive-steps', [EmotiveStepController::class, 'store'])->name('emotive.steps.store');
     Route::get('/patients/{patientId}/summary', [EmotiveStepController::class, 'getStepsForPatient'])->name('emotive.steps.patient')->middleware('check.patient.ownership');
@@ -62,4 +62,4 @@ Route::middleware('auth')->group(function () {
     })->name('test.sms'); */
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
