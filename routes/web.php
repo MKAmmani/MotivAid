@@ -7,6 +7,7 @@ use App\Http\Controllers\EmotivController;
 use App\Http\Controllers\DiagonesticController;
 use App\Http\Controllers\TreatmentController;
 use App\Http\Controllers\EmotiveStepController;
+use App\Http\Controllers\HospitalController;
 use App\Http\Controllers\VoiceCallController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,16 @@ Route::middleware('auth')->group(function () {
     // Emotive Step Routes
     Route::post('/emotive-steps', [EmotiveStepController::class, 'store'])->name('emotive.steps.store');
     Route::get('/patients/{patientId}/summary', [EmotiveStepController::class, 'getStepsForPatient'])->name('emotive.steps.patient')->middleware('check.patient.ownership');
+
+    //Hospital Routes
+    Route::get('/hospitals', [HospitalController::class, 'index'])->name('hospitals.index');
+    Route::get('new-hospital', [HospitalController::class, 'create'])->name('hospital.create');
+    Route::post('new-hospital', [HospitalController::class, 'store'])->name('hospital.store');
+    Route::get('/hospitals/{hospital}', [HospitalController::class, 'show'])->name('hospital.show');
+    Route::get('/hospitals/{hospital}/edit', [HospitalController::class, 'edit'])->name('hospital.edit');
+    Route::put('/hospitals/{hospital}', [HospitalController::class, 'update'])->name('hospital.update');
+    Route::delete('/hospitals/{hospital}', [HospitalController::class, 'destroy'])->name('hospital.destroy');
+
 
     // Notification Routes
     //Route::post('/send-sms', [NotificationController::class, 'sendMessage'])->name('send.sms');

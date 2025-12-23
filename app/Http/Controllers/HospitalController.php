@@ -4,32 +4,34 @@ namespace App\Http\Controllers;
 
 use App\Models\Hospital;
 use Illuminate\Http\Request;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
+//use Illuminate\Http\RedirectResponse;
+
+use Inertia\Inertia;
 
 class HospitalController extends Controller
 {
     /**
      * Display a listing of the hospitals.
      */
-    public function index(): View
+    public function index()
     {
         $hospitals = Hospital::all();
-        return view('hospitals.index', compact('hospitals'));
+        return Inertia('Hospitals/Index');
+        //return view('hospitals.index', compact('hospitals'));
     }
 
     /**
      * Show the form for creating a new hospital.
      */
-    public function create(): View
+    public function create()
     {
-        return view('hospitals.create');
+        return Inertia('Hospitals/Create');
     }
 
     /**
      * Store a newly created hospital in storage.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -39,30 +41,30 @@ class HospitalController extends Controller
 
         Hospital::create($request->all());
 
-        return redirect()->route('hospitals.index')
-                         ->with('success', 'Hospital created successfully.');
+        return redirect()->route('Hospitals/Index')
+            ->with('success', 'Hospital created successfully.');
     }
 
     /**
      * Display the specified hospital.
      */
-    public function show(Hospital $hospital): View
+    public function show(Hospital $hospital)
     {
-        return view('hospitals.show', compact('hospital'));
+        return view('Hospitals/Show', compact('hospital'));
     }
 
     /**
      * Show the form for editing the specified hospital.
      */
-    public function edit(Hospital $hospital): View
+    public function edit(Hospital $hospital)
     {
-        return view('hospitals.edit', compact('hospital'));
+        return view('Hospitals/Edit', compact('hospital'));
     }
 
     /**
      * Update the specified hospital in storage.
      */
-    public function update(Request $request, Hospital $hospital): RedirectResponse
+    public function update(Request $request, Hospital $hospital)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -72,18 +74,18 @@ class HospitalController extends Controller
 
         $hospital->update($request->all());
 
-        return redirect()->route('hospitals.index')
-                         ->with('success', 'Hospital updated successfully.');
+        return redirect()->route('Hospitals/index')
+            ->with('success', 'Hospital updated successfully.');
     }
 
     /**
      * Remove the specified hospital from storage.
      */
-    public function destroy(Hospital $hospital): RedirectResponse
+    public function destroy(Hospital $hospital)
     {
         $hospital->delete();
 
-        return redirect()->route('hospitals.index')
-                         ->with('success', 'Hospital deleted successfully.');
+        return redirect()->route('Hospitals/Index')
+            ->with('success', 'Hospital deleted successfully.');
     }
 }

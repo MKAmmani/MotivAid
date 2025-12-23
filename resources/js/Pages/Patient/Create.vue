@@ -1,9 +1,60 @@
 <script setup>
+let deferredPrompt = null;
+
 import { useForm } from "@inertiajs/vue3";
 import { ref, onMounted, computed } from "vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import { Link, usePage } from "@inertiajs/vue3";
+
+// 2. Define the reactive state variable
+const showInstallButton = ref(false);
+
+// 3. Define the method to handle the prompt
+const promptInstall = () => {
+    if (deferredPrompt) {
+        // Show the native prompt
+        deferredPrompt.prompt();
+
+        // Wait for the user to respond
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === "accepted") {
+                console.log("User accepted the install prompt");
+            } else {
+                console.log("User dismissed the install prompt");
+            }
+            // Prompt can only be used once, regardless of outcome
+            deferredPrompt = null;
+            showInstallButton.value = false;
+        });
+    }
+};
+
+// 4. Use the onMounted hook for event listeners
+//import { onMounted } from "vue";
+
+onMounted(() => {
+    // Listen for the browser's ready-to-install event
+    window.addEventListener("beforeinstallprompt", (e) => {
+        // Prevent the default browser UI prompt (to use your custom button)
+        e.preventDefault();
+
+        // Stash the event so the button can trigger it later
+        deferredPrompt = e;
+
+        // Update the reactive state to show the button
+        showInstallButton.value = true;
+    });
+
+    // Listen for the app being successfully installed
+    window.addEventListener("appinstalled", () => {
+        console.log("PWA was successfully installed.");
+
+        // Hide the button forever and clear the prompt
+        showInstallButton.value = false;
+        deferredPrompt = null;
+    });
+});
 
 const page = usePage();
 
@@ -280,6 +331,13 @@ const closeAndReset = () => {
         <header
             class="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between"
         >
+            <button
+                v-if="showInstallButton"
+                @click="promptInstall"
+                class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+            >
+                ✨ Install App!
+            </button>
             <div class="flex items-center space-x-3">
                 <div
                     class="bg-white p-1.5 rounded-full shadow-sm border border-gray-200"
