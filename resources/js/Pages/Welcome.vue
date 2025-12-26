@@ -10,6 +10,11 @@ import {Link } from '@inertiajs/vue3';
   <!-- Full-screen container with background image -->
   <div class="relative flex min-h-screen w-full items-center justify-center overflow-hidden">
 
+    <!-- Request Demo Button -->
+    <button class="absolute top-4 right-4 z-30 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+      Request Demo
+    </button>
+
     <!-- Background Image -->
     <div 
       class="absolute inset-0 z-0 bg-cover bg-center"
