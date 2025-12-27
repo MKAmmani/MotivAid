@@ -9,6 +9,7 @@ use App\Http\Controllers\TreatmentController;
 use App\Http\Controllers\EmotiveStepController;
 use App\Http\Controllers\HospitalController;
 use App\Http\Controllers\VoiceCallController;
+use App\Http\Controllers\VideoController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -65,6 +66,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/make-call', [VoiceCallController::class, 'makeCall'])->name('make.call');
     //Route::get('/twilio/voice', [VoiceCallController::class, 'voiceXml'])->name('twilio.voice');
     Route::match(['get', 'post'], '/twilio/voice', [VoiceCallController::class, 'voiceXml'])->name('twilio.voice');
+
+    // Video Routes
+    Route::get('/videos', [VideoController::class, 'index'])->name('videos.index');
+    Route::get('/videos/{filename}', [VideoController::class, 'show'])->name('videos.show');
+   
+
     /* Test route for Africa's Talking
     Route::get('/test-sms', function() {
         $service = app(\App\Services\AfricaTalkingService::class);

@@ -11,7 +11,7 @@ export default {
     ],
 
     theme: {
-        extend: {
+        extend: { 
             fontFamily: {
                 sans: ["Figtree", ...defaultTheme.fontFamily.sans],
             },
@@ -25,9 +25,22 @@ export default {
                 "primary-dark": "#59243f",
                 "surface-light": "#ffffff",
                 "surface-dark": "#2a161f",
+
+                "primary": "#EC4899", // Updated to MotivAid Pink
+                        "primary-hover": "#DB2777",
+                        "background-dark": "#09090B", // Updated to neutral dark
+                        "surface-dark": "#18181B", // Updated to neutral surface
+                        "surface-darker": "#121214", // Updated to neutral darker surface
+                        "text-main": "#FAFAFA", 
+                        "text-secondary": "#A1A1AA", 
+                        "border-dark": "#27272A", 
+                        "accent-success": "#10B981",
+                        "accent-warning": "#F59E0B",
+                        "accent-danger": "#EF4444",
             },
             fontFamily: {
-                display: ["Public Sans", "sans-serif"],
+                display: ["Inter", "sans-serif"],
+                body: ["Inter", "sans-serif"]
             },
             borderRadius: {
                 DEFAULT: "0.5rem",
