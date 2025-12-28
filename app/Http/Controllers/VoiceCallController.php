@@ -3,17 +3,38 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Twilio\Rest\Client;
+use Illuminate\Support\Facades\Auth;
 
 class VoiceCallController extends Controller
 {
     public function makeCall()
     {
+        // Get the authenticated user
+        $user = Auth::user();
+
+        // Assuming the user has a hospital relationship with a phone number
+        // You might need to adjust this depending on your actual model relationships
+        $hospitalNumber = null;
+
+        if ($user && $user->hospital) {
+            $hospitalNumber = $user->hospital->contact_info; // Adjust the field name as needed
+        }
+
+        // Fallback to a default number if no hospital number is found
+        if (!$hospitalNumber) {
+            // You might want to throw an exception or return an error instead
+            return response()->json([
+                'success' => false,
+                'message' => 'No hospital contact number found for the user.'
+            ], 404);
+        }
+
         $sid = env('TWILIO_SID');
         $token = env('TWILIO_AUTH_TOKEN');
         $twilio = new Client($sid, $token);
 
         $call = $twilio->calls->create(
-            '+2347082262502', // your verified number
+            $hospitalNumber, // Dynamic hospital number
             env('TWILIO_PHONE_NUMBER'), // Twilio number
             ['url' => route('twilio.voice')] // TwiML instructions
         );

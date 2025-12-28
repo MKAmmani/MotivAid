@@ -182,103 +182,143 @@ const closeAndReset = () => {
 
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto px-4 py-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-6">
-                Hospital Information
-            </h2>
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">
+                    Hospital Information
+                </h2>
 
-            <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <h3 class="text-lg font-medium text-gray-700 mb-4">
-                    Add New Hospital
-                </h3>
-
-                <div class="space-y-4">
-                    <form @submit.prevent="addHospital" class="space-y-4">
+                <section class="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 p-3 rounded-lg mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
                         <div>
-                            <label
-                                class="block text-sm font-medium text-gray-700 mb-1"
-                                >Hospital Name</label
-                            >
-                            <input
-                                v-model="form.name"
-                                type="text"
-                                :class="{
-                                    'border-red-500': form.errors.name,
-                                    'border-gray-300': !form.errors.name,
-                                }"
-                                class="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
-                            />
-                            <div
-                                v-if="form.errors.name"
-                                class="text-red-500 text-sm mt-1"
-                            >
-                                {{ form.errors.name }}
+                            <h3 class="text-lg font-semibold text-gray-800">Add New Hospital</h3>
+                            <p class="text-sm text-gray-500">Enter the hospital details below</p>
+                        </div>
+                    </div>
+
+                    <form @submit.prevent="addHospital" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 mb-2 flex items-center"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-motivaid-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                        Hospital Name
+                                    </label>
+                                    <input
+                                        v-model="form.name"
+                                        type="text"
+                                        :class="{
+                                            'border-red-500': form.errors.name,
+                                            'border-gray-300': !form.errors.name,
+                                        }"
+                                        class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:border-transparent transition duration-200 shadow-sm"
+                                        placeholder="Enter hospital name"
+                                    />
+                                    <div
+                                        v-if="form.errors.name"
+                                        class="text-red-500 text-sm mt-1 flex items-center"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {{ form.errors.name }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 mb-2 flex items-center"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-motivaid-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        Location
+                                    </label>
+                                    <input
+                                        v-model="form.location"
+                                        type="text"
+                                        :class="{
+                                            'border-red-500': form.errors.location,
+                                            'border-gray-300': !form.errors.location,
+                                        }"
+                                        class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:border-transparent transition duration-200 shadow-sm"
+                                        placeholder="Enter hospital location"
+                                    />
+                                    <div
+                                        v-if="form.errors.location"
+                                        class="text-red-500 text-sm mt-1 flex items-center"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {{ form.errors.location }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4 md:col-span-2">
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 mb-2 flex items-center"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-motivaid-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                        </svg>
+                                        Contact Information
+                                    </label>
+                                    <input
+                                        v-model="form.contact_info"
+                                        type="text"
+                                        :class="{
+                                            'border-red-500': form.errors.contact_info,
+                                            'border-gray-300':
+                                                !form.errors.contact_info,
+                                        }"
+                                        class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-motivaid-teal focus:border-transparent transition duration-200 shadow-sm"
+                                        placeholder="Enter contact information (phone, email, etc.)"
+                                    />
+                                    <div
+                                        v-if="form.errors.contact_info"
+                                        class="text-red-500 text-sm mt-1 flex items-center"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {{ form.errors.contact_info }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div>
-                            <label
-                                class="block text-sm font-medium text-gray-700 mb-1"
-                                >Location</label
-                            >
-                            <input
-                                v-model="form.location"
-                                type="text"
+                        <div class="pt-4 flex justify-end">
+                            <button
                                 :class="{
-                                    'border-red-500': form.errors.location,
-                                    'border-gray-300': !form.errors.location,
+                                    'opacity-50 cursor-not-allowed': form.processing || !isFormValid,
                                 }"
-                                class="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
-                            />
-                            <div
-                                v-if="form.errors.location"
-                                class="text-red-500 text-sm mt-1"
+                                :disabled="form.processing || !isFormValid"
+                                type="submit"
+                                class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-6 py-3 rounded-lg hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink shadow-lg hover:shadow-xl transition-all duration-200 flex items-center"
                             >
-                                {{ form.errors.location }}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label
-                                class="block text-sm font-medium text-gray-700 mb-1"
-                                >Contact Information</label
-                            >
-                            <input
-                                v-model="form.contact_info"
-                                type="text"
-                                :class="{
-                                    'border-red-500': form.errors.contact_info,
-                                    'border-gray-300':
-                                        !form.errors.contact_info,
-                                }"
-                                class="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-motivaid-teal"
-                            />
-                            <div
-                                v-if="form.errors.contact_info"
-                                class="text-red-500 text-sm mt-1"
-                            >
-                                {{ form.errors.contact_info }}
-                            </div>
-                        </div>
-
-                        <div>
-                            <div class="flex justify-end">
-                                <button
-                                    :class="{
-                                        'opacity-25':
-                                            form.processing || !isFormValid,
-                                        'cursor-not-allowed': !isFormValid,
-                                    }"
-                                    :disabled="form.processing || !isFormValid"
-                                    type="submit"
-                                    class="bg-gradient-to-r from-motivaid-pink to-hotpink-800 text-white px-4 py-2 rounded-md hover:from-motivaid-pink hover:to-motivaid-pink focus:outline-none focus:ring-2 focus:ring-motivaid-pink"
-                                >
-                                    Save Hospital
-                                </button>
-                            </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Save Hospital
+                            </button>
                         </div>
                     </form>
-                </div>
-            </section>
+                </section>
+            </div>
         </main>
 
         <div class="mt-8 text-center text-gray-400 text-sm">

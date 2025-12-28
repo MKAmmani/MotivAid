@@ -43,12 +43,9 @@
                                 <span
                                     class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-surface-darker"></span>
                             </button>
-                            <button
-                                class="relative rounded-full ring-2 ring-transparent hover:ring-primary/50 transition-all">
-                                <div class="bg-center bg-no-repeat bg-cover rounded-full h-9 w-9 border-2 border-surface-dark"
-                                    style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuANNFBYoMTxtrq44iOjj4HZN5eRyF02qOecDiZkrmieOwGpVbgSXxp_QdI1O_T2wonSJpvauOy_SLtV_t8NRl-o7_EIsB45EbUylcBWVGwPGGg71JNK0Xo3gToo4oPCWV7vL11tsoa7Qu4XKKBBQ0yQlcyyCXwFVSXUixzMlrwJi8C2wetywA3yFs9lTPUsDORaConCgyeu_-th2uAhWdfZe4VsoVnzoG2h9bKujys0a6qAoyhD3myGIcVgcfJQ3D-T7JYjumycIDmJ");'>
-                                </div>
-                            </button>
+                            <div class="bg-center bg-no-repeat bg-cover rounded-full h-9 w-9 border-2 border-surface-dark"
+                                style='background-image: url("https://i.pravatar.cc/40")'>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -148,10 +145,13 @@
                     <div
                         class="group flex flex-col bg-surface-dark rounded-2xl overflow-hidden border border-border-dark hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-300 relative">
                         <div class="relative aspect-video bg-surface-darker overflow-hidden">
-                            <!-- Video thumbnail - in a real implementation, this would be an actual thumbnail -->
+                            <!-- Video thumbnail with gradient overlay -->
                             <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                                style="background-color: #4f46e5; display: flex; align-items: center; justify-content: center;">
-                                <span class="text-white text-lg font-bold text-center px-4">{{ video.name.substring(0, 20) }}{{ video.name.length > 20 ? '...' : '' }}</span>
+                                :style="{ 'background-color': getVideoColor(video.name) }">
+                                <!-- Video icon for visual representation -->
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-4xl text-white/30">movie</span>
+                                </div>
                             </div>
                             <div class="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent opacity-80">
                             </div>
@@ -178,12 +178,12 @@
                                 <span
                                     :class="`self-start inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ${getCategoryColor(video.category)}`">{{ video.category }}</span>
                                 <h3
-                                    class="text-lg font-bold text-white leading-snug group-hover:text-primary transition-colors">
+                                    class="text-lg font-bold text-white leading-snug group-hover:text-primary transition-colors truncate max-w-full">
                                     {{ video.name }}
                                 </h3>
                             </div>
                             <p class="text-sm text-text-secondary line-clamp-2 mb-6 font-light">
-                                {{ video.name }} - {{ video.size_formatted }} video file
+                                {{ video.size_formatted }} video file
                             </p>
                             <div
                                 class="mt-auto pt-4 border-t border-border-dark flex items-center justify-between text-xs font-medium text-text-secondary">
@@ -214,9 +214,7 @@
                 class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
                     <div class="flex items-center gap-2">
-                        <div class="bg-primary/10 p-1.5 rounded-md">
-                            <span class="material-symbols-outlined text-primary text-xl">medical_services</span>
-                        </div>
+                        <img src="/images/motivaid_logo.jpg" alt="MotivAid Logo" class="h-8 w-8 rounded object-contain" />
                         <span class="text-lg font-bold text-white">MotivAid</span>
                     </div>
                     <div class="hidden md:block w-px h-6 bg-border-dark"></div>
@@ -268,6 +266,29 @@ const getStatusInfo = (status) => {
                 title: 'Not Started'
             };
     }
+};
+
+// Function to get a color based on the video name for visual variety
+const getVideoColor = (name) => {
+    const colors = [
+        '#4f46e5', // indigo
+        '#ec4899', // pink
+        '#f59e0b', // amber
+        '#10b981', // emerald
+        '#3b82f6', // blue
+        '#8b5cf6', // violet
+        '#ef4444', // red
+        '#06b6d4', // cyan
+    ];
+
+    // Create a simple hash of the name to get consistent colors
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
 };
 
 // Function to get category color classes

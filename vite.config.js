@@ -4,6 +4,9 @@ import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa"; // <-- Import the plugin
 
 export default defineConfig({
+    server: {
+        host: "127.0.0.1",
+    },
     plugins: [
         laravel({
             input: "resources/js/app.js",
