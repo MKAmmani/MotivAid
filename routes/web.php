@@ -23,6 +23,10 @@ Route::get('/', function () {
     ]);
 });
 
+ // Video Routes
+    Route::get('/videos', [VideoController::class, 'index'])->name('videos.index');
+    Route::get('/videos/{filename}', [VideoController::class, 'show'])->name('videos.show');
+
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
@@ -67,9 +71,7 @@ Route::middleware('auth')->group(function () {
     //Route::get('/twilio/voice', [VoiceCallController::class, 'voiceXml'])->name('twilio.voice');
     Route::match(['get', 'post'], '/twilio/voice', [VoiceCallController::class, 'voiceXml'])->name('twilio.voice');
 
-    // Video Routes
-    Route::get('/videos', [VideoController::class, 'index'])->name('videos.index');
-    Route::get('/videos/{filename}', [VideoController::class, 'show'])->name('videos.show');
+   
    
 
     /* Test route for Africa's Talking
